@@ -115,6 +115,8 @@ def _now_iso() -> str:
 
 def save_itinerary(itinerary: dict) -> int:
     """Create an itinerary in PostgreSQL. Returns the new row id."""
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -144,6 +146,8 @@ def save_itinerary(itinerary: dict) -> int:
 
 def get_stage(stage_id: int, tenant_id: int | None = None) -> dict | None:
     """Retrieve a single stage by id, optionally filtered by tenant."""
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -162,6 +166,8 @@ def get_stage(stage_id: int, tenant_id: int | None = None) -> dict | None:
 
 def get_itinerary(itinerary_id: int, tenant_id: int | None = None) -> dict | None:
     """Retrieve a single itinerary by id, optionally filtered by tenant."""
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -182,6 +188,8 @@ def list_itineraries(
     athlete_id: int | None = None, tenant_id: int | None = None
 ) -> list[dict]:
     """Return all itineraries, optionally filtered by athlete or tenant."""
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -211,6 +219,8 @@ def list_itineraries(
 
 def save_stage(stage: dict) -> int:
     """Create a stage for an itinerary in PostgreSQL. Returns the new row id."""
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -238,6 +248,8 @@ def save_stage(stage: dict) -> int:
 
 def list_stages(itinerary_id: int, tenant_id: int | None = None) -> list[dict]:
     """Return all stages for an itinerary, ordered by stage_day."""
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -280,6 +292,8 @@ def update_itinerary(itinerary_id: int, data: dict, tenant_id: int | None = None
     updates.append("updated_at=%s")
     vals.append(_now_iso())
 
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -302,6 +316,8 @@ def update_itinerary(itinerary_id: int, data: dict, tenant_id: int | None = None
 
 def delete_itinerary(itinerary_id: int, tenant_id: int | None = None) -> bool:
     """Delete an itinerary. Returns True if the row was deleted."""
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -343,6 +359,8 @@ def update_stage(stage_id: int, data: dict, tenant_id: int | None = None) -> boo
     updates.append("updated_at=%s")
     vals.append(_now_iso())
 
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -365,6 +383,8 @@ def update_stage(stage_id: int, data: dict, tenant_id: int | None = None) -> boo
 
 def delete_stage(stage_id: int, tenant_id: int | None = None) -> bool:
     """Delete a stage. Returns True if the row was deleted."""
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -384,6 +404,8 @@ def delete_stage(stage_id: int, tenant_id: int | None = None) -> bool:
 
 def reorder_stages(itinerary_id: int, stage_order: list[int], tenant_id: int | None = None) -> bool:
     """Reorder stages by updating stage_day values. Returns True on success."""
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)

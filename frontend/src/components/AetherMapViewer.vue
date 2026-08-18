@@ -153,6 +153,13 @@ let terrainBuffer: {
 let earthTexture: WebGLTexture | null = null;
 let useEarthTexture = false;
 
+let cachedProj = new Float32Array(16);
+let cachedView = new Float32Array(16);
+let cachedAspect = 0;
+let cachedCamDist = -1;
+let cachedYaw = 0;
+let cachedPitch = 0;
+
 const firstRideId = computed(() => props.rideIds?.[0] ?? null);
 const terrain = useAetherMapTerrain(
   firstRideId,
@@ -1097,6 +1104,9 @@ onMounted(async () => {
     return;
   }
   gl = glCtx;
+  gl.enable(gl.DEPTH_TEST);
+  gl.enable(gl.CULL_FACE);
+  gl.cullFace(gl.BACK);
 
   const VS = `#version 300 es
   in vec3 aPosition;
@@ -1395,17 +1405,20 @@ onMounted(async () => {
   });
   canvasEl.tabIndex = 0;
 
-  function resize() {
-    const container = canvasEl.parentElement;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
+  function applyResize(width: number, height: number) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvasEl.width = Math.floor(rect.width * dpr);
-    canvasEl.height = Math.floor(rect.height * dpr);
+    canvasEl.width = Math.floor(width * dpr);
+    canvasEl.height = Math.floor(height * dpr);
   }
-  resizeObserver = new ResizeObserver(() => resize());
+  resizeObserver = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      applyResize(entry.contentRect.width, entry.contentRect.height);
+    }
+  });
   resizeObserver.observe(canvasEl.parentElement!);
-  resize();
+  requestAnimationFrame(() => {
+    applyResize(canvasEl.parentElement!.clientWidth, canvasEl.parentElement!.clientHeight);
+  });
 
   const sunDir = normalize3([0.6, 0.8, 0.4]);
 
@@ -1448,9 +1461,6 @@ onMounted(async () => {
     gl.viewport(0, 0, canvasEl.width, canvasEl.height);
     gl.clearColor(0.02, 0.03, 0.06, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.enable(gl.DEPTH_TEST);
-    gl.enable(gl.CULL_FACE);
-    gl.cullFace(gl.BACK);
 
     if (!dragging && autoRotate) {
       yaw += 0.003;
@@ -1472,11 +1482,22 @@ onMounted(async () => {
       rebuildGlobeIfNeeded(camDist).catch(() => {});
     }
 
-    const proj = mat4Perspective(CAM_FOV, aspect, CAM_NEAR, CAM_FAR);
-    const view = mat4LookAt(eye, [0, 0, 0], [0, 1, 0]);
+    if (
+      aspect !== cachedAspect ||
+      camDist !== cachedCamDist ||
+      yaw !== cachedYaw ||
+      pitch !== cachedPitch
+    ) {
+      cachedAspect = aspect;
+      cachedCamDist = camDist;
+      cachedYaw = yaw;
+      cachedPitch = pitch;
+      cachedProj.set(mat4Perspective(CAM_FOV, aspect, CAM_NEAR, CAM_FAR));
+      cachedView.set(mat4LookAt(eye, [0, 0, 0], [0, 1, 0]));
+    }
 
-    gl.uniformMatrix4fv(U.proj, false, proj);
-    gl.uniformMatrix4fv(U.view, false, view);
+    gl.uniformMatrix4fv(U.proj, false, cachedProj);
+    gl.uniformMatrix4fv(U.view, false, cachedView);
     gl.uniform3fv(U.sunDir, sunDir);
     gl.uniform3fv(U.eyePos, eye);
     gl.uniform1f(U.pointSize, 6.0);

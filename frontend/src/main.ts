@@ -140,37 +140,35 @@ if ("serviceWorker" in navigator && !isTauri()) {
         const newWorker = reg.installing;
         if (newWorker) {
           newWorker.addEventListener("statechange", () => {
-            if (
-              newWorker.state === "installed" &&
-              navigator.serviceWorker.controller
-            ) {
-              if (hasPendingOAuth() || auth.justLoggedIn) {
-                // Defer SW activation until the OAuth round-trip is done
-                const attemptActivate = () => {
-                  if (!hasPendingOAuth() && !auth.justLoggedIn) {
-                    swUpdatePending = true;
-                    try {
-                      newWorker.postMessage({ type: "SKIP_WAITING" });
-                    } catch {
-                      // message channel closed during SW update
+            queueMicrotask(() => {
+              if (
+                newWorker.state === "installed" &&
+                navigator.serviceWorker.controller
+              ) {
+                if (hasPendingOAuth() || auth.justLoggedIn) {
+                  const attemptActivate = () => {
+                    if (!hasPendingOAuth() && !auth.justLoggedIn) {
+                      swUpdatePending = true;
+                      try {
+                        newWorker.postMessage({ type: "SKIP_WAITING" });
+                      } catch {
+                        // message channel closed during SW update
+                      }
+                    } else {
+                      setTimeout(attemptActivate, 500);
                     }
-                  } else {
-                    setTimeout(attemptActivate, 500);
+                  };
+                  setTimeout(attemptActivate, 500);
+                } else {
+                  swUpdatePending = true;
+                  try {
+                    newWorker.postMessage({ type: "SKIP_WAITING" });
+                  } catch {
+                    // message channel closed during SW update
                   }
-                };
-                setTimeout(attemptActivate, 500);
-              } else {
-                swUpdatePending = true;
-                try {
-                  newWorker.postMessage({ type: "SKIP_WAITING" });
-                } catch {
-                  // message channel closed during SW update
                 }
-                // Do NOT reload here: controllerchange will fire once
-                // the new SW takes control, and we reload only when
-                // the page is visible — bfcache-safe.
               }
-            }
+            });
           });
         }
       });

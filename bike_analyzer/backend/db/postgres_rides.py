@@ -192,6 +192,8 @@ def save_ride(ride: dict) -> int:
     """
     external_source = str(ride.get("external_source") or "").strip() or None
     external_id = str(ride.get("external_id") or "").strip() or None
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     if not ride.get("calories"):
         try:
             from ..analytics.calories import ensure_calories
@@ -246,6 +248,8 @@ def save_ride(ride: dict) -> int:
 
 def get_ride(ride_id: int, tenant_id: int | None = None) -> dict | None:
     """Recupera una singola attivita' per id, opzionalmente filtrata per tenant."""
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -261,6 +265,8 @@ def get_ride(ride_id: int, tenant_id: int | None = None) -> dict | None:
 
 def get_rides_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
     """Restituisce tutte le attivita' di un atleta, opzionalmente filtrate per tenant (oldest-first)."""
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -282,6 +288,8 @@ def get_rides_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[
 
 def get_all_rides(athlete_id: int | None = None, tenant_id: int | None = None) -> list[dict]:
     """Return rides filtered by athlete and/or tenant, or all rides if none provided."""
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -304,6 +312,8 @@ def get_all_rides(athlete_id: int | None = None, tenant_id: int | None = None) -
 
 def delete_ride(ride_id: int, tenant_id: int | None = None) -> bool:
     """Delete a ride by id, optionally scoped to a tenant. Returns True if deleted."""
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -342,6 +352,8 @@ def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
             val = val or "manual"
         assignments.append(f"{c} = %s")
         params.append(val)
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -381,6 +393,8 @@ def save_metric(metric: dict, tenant_id: int = 0) -> int:
         "athlete_id, ride_id, fatigue_score, recovery_hours, calories_per_km, efficiency_score, created_at, tenant_id"
     )
     placeholders = ", ".join(["%s"] * len(params))
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -396,6 +410,8 @@ def save_metric(metric: dict, tenant_id: int = 0) -> int:
 def upsert_training_stress_day(
     athlete_id: int, date: str, tss: float, atl: float, ctl: float, tsb: float, tenant_id: int = 0
 ) -> None:
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     now = datetime.now(UTC).isoformat()
     conn = _connect()
     try:
@@ -417,6 +433,8 @@ def upsert_training_stress_day(
 
 
 def get_training_stress_days(athlete_id: int, limit: int = 90, tenant_id: int | None = None) -> list[dict]:
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -444,6 +462,8 @@ def get_training_stress_days(athlete_id: int, limit: int = 90, tenant_id: int | 
 
 
 def get_latest_training_stress(athlete_id: int, tenant_id: int | None = None) -> dict | None:
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -472,6 +492,8 @@ def get_latest_training_stress(athlete_id: int, tenant_id: int | None = None) ->
 
 def get_metrics_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
     """Return all metrics rows for an athlete, optionally filtered by tenant."""
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)

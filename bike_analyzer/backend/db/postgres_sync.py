@@ -8,7 +8,7 @@ import logging
 from datetime import UTC, datetime
 
 from ..settings import get_settings
-from .postgres_athlete import _connect, _safe_close
+from .postgres_athlete import _connect, _safe_close, has_postgres
 
 _s = get_settings()
 logger = logging.getLogger(__name__)
@@ -78,9 +78,11 @@ def _ensure_tables(conn) -> None:
 
 
 def save_sync_entity_state(entity_type: str, entity_id: int, data: dict) -> int:
-    _ensure_tables(_connect())
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
+        _ensure_tables(conn)
         now = datetime.now(UTC).isoformat()
         with conn.cursor() as cur:
             cur.execute(
@@ -110,6 +112,8 @@ def save_sync_entity_state(entity_type: str, entity_id: int, data: dict) -> int:
 
 
 def get_sync_entity_state(entity_type: str, entity_id: int) -> dict | None:
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -125,9 +129,11 @@ def get_sync_entity_state(entity_type: str, entity_id: int) -> dict | None:
 
 
 def save_sync_setting(key: str, value: str) -> None:
-    _ensure_tables(_connect())
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
+        _ensure_tables(conn)
         now = datetime.now(UTC).isoformat()
         with conn.cursor() as cur:
             cur.execute(
@@ -142,6 +148,8 @@ def save_sync_setting(key: str, value: str) -> None:
 
 
 def get_sync_setting(key: str) -> str | None:
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -154,6 +162,8 @@ def get_sync_setting(key: str) -> str | None:
 
 
 def save_sync_conflict(conflict: dict) -> int:
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -180,6 +190,8 @@ def save_sync_conflict(conflict: dict) -> int:
 
 
 def get_pending_sync_entities(entity_type: str | None = None) -> list[dict]:
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -200,6 +212,8 @@ def get_pending_sync_entities(entity_type: str | None = None) -> list[dict]:
 
 
 def get_sync_conflicts(unresolved_only: bool = True) -> list[dict]:
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -215,6 +229,8 @@ def get_sync_conflicts(unresolved_only: bool = True) -> list[dict]:
 
 
 def resolve_sync_conflict(conflict_id: int, resolution: str, resolved_data: str, reason: str) -> None:
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)

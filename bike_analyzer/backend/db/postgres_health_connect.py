@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 
 from ..settings import get_settings
-from .postgres_athlete import _connect, _safe_close
+from .postgres_athlete import _connect, _safe_close, has_postgres
 
 _s = get_settings()
 logger = logging.getLogger(__name__)
@@ -33,9 +33,11 @@ def _ensure_tables(conn) -> None:
 
 
 def connect_health_connect(athlete_id: int, permissions: str = "[]") -> dict:
-    _ensure_tables(_connect())
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
+        _ensure_tables(conn)
         with conn.cursor() as cur:
             cur.execute(
                 """INSERT INTO health_connect_tokens (athlete_id, connected, permissions)
@@ -53,6 +55,8 @@ def connect_health_connect(athlete_id: int, permissions: str = "[]") -> dict:
 
 
 def disconnect_health_connect(athlete_id: int) -> None:
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -64,6 +68,8 @@ def disconnect_health_connect(athlete_id: int) -> None:
 
 
 def get_health_connect_token(athlete_id: int) -> dict | None:
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -85,6 +91,8 @@ def get_health_connect_token(athlete_id: int) -> dict | None:
 
 
 def update_health_connect_sync(athlete_id: int, last_sync_at: str) -> None:
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)

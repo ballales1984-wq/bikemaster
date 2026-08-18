@@ -8,7 +8,7 @@ import logging
 from datetime import UTC, datetime
 
 from ..settings import get_settings
-from .postgres_athlete import _connect, _safe_close
+from .postgres_athlete import _connect, _safe_close, has_postgres
 
 _s = get_settings()
 logger = logging.getLogger(__name__)
@@ -29,9 +29,11 @@ def _ensure_tables(conn) -> None:
 
 
 def revoke_token(jti: str, ttl: int = 7200) -> None:
-    _ensure_tables(_connect())
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
+        _ensure_tables(conn)
         with conn.cursor() as cur:
             cur.execute(
                 """INSERT INTO revoked_tokens (jti, revoked_at, expires_at)
@@ -46,6 +48,8 @@ def revoke_token(jti: str, ttl: int = 7200) -> None:
 
 
 def is_token_revoked(jti: str) -> bool:
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         _ensure_tables(conn)
@@ -61,6 +65,8 @@ def is_token_revoked(jti: str) -> bool:
 
 
 def sweep_revoked_tokens() -> None:
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
     conn = _connect()
     try:
         with conn.cursor() as cur:
