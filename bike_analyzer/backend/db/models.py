@@ -1128,9 +1128,10 @@ class HR24hSampleModel(Base):
     id: Mapped[int] = mapped_column(Integer, autoincrement=True, primary_key=True)
     athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), index=True)
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
-    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    hr_bpm: Mapped[int] = mapped_column(Integer, nullable=False)
-    source: Mapped[str] = mapped_column(String, default="manual")
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    heart_rate: Mapped[int] = mapped_column(Integer, nullable=False)
+    source: Mapped[str] = mapped_column(String, default="ble")
+    device_id: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
@@ -1140,9 +1141,13 @@ class HRMonitoringSettingsModel(Base):
     id: Mapped[int] = mapped_column(Integer, autoincrement=True, primary_key=True)
     athlete_id: Mapped[int] = mapped_column(Integer, ForeignKey("athletes.id", ondelete="CASCADE"), unique=True)
     tenant_id: Mapped[int] = mapped_column(Integer, default=0)
+    enabled: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
+    interval_seconds: Mapped[int] = mapped_column(Integer, nullable=False, server_default="30")
+    source: Mapped[str] = mapped_column(String, nullable=False, server_default="ble")
+    device_id: Mapped[str | None] = mapped_column(String, nullable=True)
     max_hr: Mapped[int | None] = mapped_column(Integer)
     resting_hr: Mapped[int | None] = mapped_column(Integer)
-    hr_zones: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 

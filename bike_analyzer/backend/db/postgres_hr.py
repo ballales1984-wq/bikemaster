@@ -16,7 +16,7 @@ def _ensure_hr_tables(conn) -> None:
                 athlete_id INTEGER NOT NULL,
                 tenant_id INTEGER DEFAULT 0,
                 heart_rate INTEGER NOT NULL,
-                source TEXT NOT NULL DEFAULT 'manual',
+                source TEXT NOT NULL DEFAULT 'ble',
                 device_id TEXT,
                 recorded_at TIMESTAMPTZ NOT NULL,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -26,16 +26,50 @@ def _ensure_hr_tables(conn) -> None:
         cur.execute(
             """
             CREATE TABLE IF NOT EXISTS hr_monitoring_settings (
+                id SERIAL PRIMARY KEY,
                 athlete_id INTEGER NOT NULL,
                 tenant_id INTEGER DEFAULT 0,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                interval_seconds INTEGER NOT NULL DEFAULT 30,
+                source TEXT NOT NULL DEFAULT 'ble',
+                device_id TEXT,
                 max_hr INTEGER,
                 resting_hr INTEGER,
-                hr_zones JSONB,
+                created_at TIMESTAMPTZ,
                 updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                PRIMARY KEY(athlete_id)
+                UNIQUE(athlete_id)
             )
             """
         )
+        cur.execute(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = 'hr_24h_samples' ORDER BY ordinal_position"
+        )
+        hr_cols = {row["column_name"] for row in cur.fetchall()}
+        if "timestamp" in hr_cols and "recorded_at" not in hr_cols:
+            cur.execute("ALTER TABLE hr_24h_samples RENAME COLUMN timestamp TO recorded_at")
+        if "hr_bpm" in hr_cols and "heart_rate" not in hr_cols:
+            cur.execute("ALTER TABLE hr_24h_samples RENAME COLUMN hr_bpm TO heart_rate")
+        if "device_id" not in hr_cols:
+            cur.execute("ALTER TABLE hr_24h_samples ADD COLUMN device_id TEXT")
+        if "source" not in hr_cols:
+            cur.execute("ALTER TABLE hr_24h_samples ADD COLUMN source TEXT NOT NULL DEFAULT 'ble'")
+        if "tenant_id" not in hr_cols:
+            cur.execute("ALTER TABLE hr_24h_samples ADD COLUMN tenant_id INTEGER DEFAULT 0")
+        cur.execute(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = 'hr_monitoring_settings' ORDER BY ordinal_position"
+        )
+        settings_cols = {row["column_name"] for row in cur.fetchall()}
+        for col_name, col_type in [
+            ("enabled", "INTEGER NOT NULL DEFAULT 1"),
+            ("interval_seconds", "INTEGER NOT NULL DEFAULT 30"),
+            ("source", "TEXT NOT NULL DEFAULT 'ble'"),
+            ("device_id", "TEXT"),
+            ("created_at", "TIMESTAMPTZ"),
+        ]:
+            if col_name not in settings_cols:
+                cur.execute(f"ALTER TABLE hr_monitoring_settings ADD COLUMN {col_name} {col_type}")
         conn.commit()
 
 
