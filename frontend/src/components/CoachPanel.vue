@@ -252,7 +252,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "../composables/useI18n";
-import { apiGet, apiPost } from "../utils/api";
+import { apiGet, apiPost, ApiError } from "../utils/api";
 import DOMPurify from "dompurify";
 import type { CoachData } from "../types/index";
 import type { Bm2CoachResult } from "../types/bm2";
@@ -487,10 +487,19 @@ async function sendMessage() {
   } catch (e) {
     const err = e as Error | undefined;
     const detail = err?.message || String(e);
+    const status = (err as ApiError & { status?: number })?.status;
+    const isColdStart =
+      status === 503 ||
+      status === 502 ||
+      status === 0 ||
+      /non raggiungibile|fetch failed|network|Failed to fetch/i.test(detail);
+    const userMsg = isColdStart
+      ? "Il server cloud e' in avvio. Riprova tra 30-60 secondi."
+      : "Errore nella risposta. " + detail;
     console.error("Coach chat error:", detail);
     messages.value.push({
       role: "assistant",
-      content: "Errore nella risposta. " + detail,
+      content: userMsg,
       time: getTime(),
     });
     connected.value = false;
@@ -546,6 +555,14 @@ async function init() {
     }
   } catch (_e) {
     console.warn("init coach", _e);
+  }
+
+  if (import.meta.env.PROD) {
+    void apiGet("/healthz", {}, { noRetry: true, timeoutMs: 3000 }).catch(
+      () => {
+        /* warm-up best-effort */
+      },
+    );
   }
 }
 

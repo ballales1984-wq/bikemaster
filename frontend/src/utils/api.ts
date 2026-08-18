@@ -114,6 +114,12 @@ function notifyServerWaking() {
   }
 }
 
+function yieldToRenderer() {
+  if (typeof queueMicrotask === "function") {
+    queueMicrotask(() => {});
+  }
+}
+
 interface RequestOptions extends Omit<RequestInit, "body"> {
   path: string;
   body?: unknown;
@@ -203,6 +209,7 @@ async function request<T>(options: RequestOptions): Promise<T> {
       if (timer) clearTimeout(timer);
       if (canRetry && !isLastAttempt) {
         notifyServerWaking();
+        yieldToRenderer();
         // Ultimo tentativo: riprova contro il failover (Render) se attivo.
         if (canUseFallback && attempt === MAX_RETRIES - 1) {
           currentBase = fallbackBase;
@@ -219,6 +226,7 @@ async function request<T>(options: RequestOptions): Promise<T> {
     }
     if (canRetry && RETRYABLE_STATUS.has(resp.status) && !isLastAttempt) {
       notifyServerWaking();
+      yieldToRenderer();
       if (canUseFallback && attempt === MAX_RETRIES - 1) {
         currentBase = fallbackBase;
       }
