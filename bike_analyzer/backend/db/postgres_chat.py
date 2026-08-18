@@ -45,8 +45,9 @@ def save_chat_message(athlete_id: int | None, role: str, content: str, tenant_id
                 """,
                 (athlete_id, role, content, datetime.now(UTC).isoformat(), tenant_id),
             )
+            row = cur.fetchone()
             conn.commit()
-            return cur.fetchone()[0]
+            return row["id"]
     finally:
         _safe_close(conn)
 
