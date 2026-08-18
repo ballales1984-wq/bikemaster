@@ -257,8 +257,9 @@ def save_nutrition_food_item(item: dict, tenant_id: int = 0) -> int:
                     now,
                 ),
             )
+            row = cur.fetchone()
             conn.commit()
-            return cur.fetchone()[0]
+            return row["id"]
     finally:
         _safe_close(conn)
 

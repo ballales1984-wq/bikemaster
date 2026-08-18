@@ -97,8 +97,8 @@ def save_calendar_event(event: dict, tenant_id: int = 0) -> int:
                     event.get("tenant_id", tenant_id),
                 ),
             )
-            conn.commit()
             returning = cur.fetchone()
+            conn.commit()
             return returning["id"] if returning else 0
     finally:
         _safe_close(conn)

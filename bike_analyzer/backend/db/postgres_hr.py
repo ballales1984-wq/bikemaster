@@ -68,8 +68,9 @@ def log_hr_sample(
                 """,
                 (athlete_id, tenant_id, heart_rate, source, device_id, recorded_at, now),
             )
+            row = cur.fetchone()
             conn.commit()
-            return cur.fetchone()[0]
+            return row["id"]
     finally:
         _safe_close(conn)
 

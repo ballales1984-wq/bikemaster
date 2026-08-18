@@ -199,8 +199,9 @@ def save_metabolic_profile(profile: dict, athlete_id: int, tenant_id: int = 0) -
                     now,
                 ),
             )
+            row = cur.fetchone()
             conn.commit()
-            return cur.fetchone()[0]
+            return row["id"]
     finally:
         _safe_close(conn)
 
@@ -275,8 +276,9 @@ def save_food_log(log: dict, tenant_id: int = 0) -> int:
                     now,
                 ),
             )
+            row = cur.fetchone()
             conn.commit()
-            return cur.fetchone()[0]
+            return row["id"]
     finally:
         _safe_close(conn)
 
@@ -425,8 +427,9 @@ def save_metabolic_daily_summary(summary: dict, tenant_id: int = 0) -> int:
                     now,
                 ),
             )
+            row = cur.fetchone()
             conn.commit()
-            return cur.fetchone()[0]
+            return row["id"]
     finally:
         _safe_close(conn)
 
@@ -559,8 +562,9 @@ def upsert_metabolic_reference_value(value: dict, tenant_id: int = 0) -> int:
                     datetime.now(UTC).isoformat(),
                 ),
             )
+            row = cur.fetchone()
             conn.commit()
-            return cur.fetchone()[0]
+            return row["id"]
     finally:
         _safe_close(conn)
 
@@ -639,8 +643,9 @@ def save_metabolic_adaptive_weights(weights: dict, athlete_id: int, tenant_id: i
                 """,
                 (athlete_id, tenant_id, json.dumps(weights), now),
             )
+            row = cur.fetchone()
             conn.commit()
-            return cur.fetchone()[0]
+            return row["athlete_id"]
     finally:
         _safe_close(conn)
 

@@ -67,8 +67,9 @@ def save_beck_assessment(assessment: dict, tenant_id: int = 0) -> int:
                     now,
                 ),
             )
+            row = cur.fetchone()
             conn.commit()
-            return cur.fetchone()[0]
+            return row["id"]
     finally:
         _safe_close(conn)
 

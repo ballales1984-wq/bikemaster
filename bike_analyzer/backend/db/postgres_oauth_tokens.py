@@ -137,8 +137,8 @@ def save_strava_token(
                     tenant_id,
                 ),
             )
-            conn.commit()
             row = cur.fetchone()
+            conn.commit()
             return int(row["id"]) if row else 0
     finally:
         _safe_close(conn)
@@ -236,8 +236,8 @@ def save_garmin_token(
                     tenant_id,
                 ),
             )
-            conn.commit()
             row = cur.fetchone()
+            conn.commit()
             return int(row["id"]) if row else 0
     finally:
         _safe_close(conn)
@@ -319,8 +319,8 @@ def save_wahoo_token(
                     tenant_id,
                 ),
             )
-            conn.commit()
             row = cur.fetchone()
+            conn.commit()
             return int(row["id"]) if row else 0
     finally:
         _safe_close(conn)

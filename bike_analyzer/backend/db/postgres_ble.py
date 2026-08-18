@@ -93,8 +93,9 @@ def register_ble_device(
                     now,
                 ),
             )
+            row = cur.fetchone()
             conn.commit()
-            return cur.fetchone()[0]
+            return row["id"]
     finally:
         _safe_close(conn)
 

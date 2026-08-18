@@ -81,8 +81,8 @@ def save_weather_cache(lat: float, lon: float, date: str, weather: dict) -> int:
                     cached_at,
                 ),
             )
-            conn.commit()
             returning = cur.fetchone()
+            conn.commit()
             return returning["id"] if returning else 0
     finally:
         _safe_close(conn)

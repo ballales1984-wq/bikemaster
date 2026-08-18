@@ -127,8 +127,9 @@ def save_route_safety_score(score_data: dict, tenant_id: int = 0) -> int:
                     score_data.get("tenant_id", tenant_id),
                 ),
             )
+            row = cur.fetchone()
             conn.commit()
-            return cur.fetchone()[0]
+            return row["id"]
     finally:
         _safe_close(conn)
 
