@@ -94,7 +94,7 @@ def test_postgres_save_ride_calls_ensure_tables():
     fake_cur.fetchone.return_value = {"id": 5}
 
     mod = importlib.import_module("bike_analyzer.backend.db.postgres_rides")
-    with patch("bike_analyzer.backend.db.dispatch.is_postgres", return_value=True), patch.object(
+    with patch.object(mod, "has_postgres", return_value=True), patch.object(
         mod, "_ensure_tables"
     ) as mock_ensure, patch.object(mod, "_connect", return_value=fake_conn), patch.object(
         mod, "_safe_close"
@@ -112,7 +112,7 @@ def test_postgres_upsert_training_stress_day_is_idempotent():
     fake_cur.__exit__ = MagicMock(return_value=False)
 
     mod = importlib.import_module("bike_analyzer.backend.db.postgres_rides")
-    with patch("bike_analyzer.backend.db.dispatch.is_postgres", return_value=True), patch.object(
+    with patch.object(mod, "has_postgres", return_value=True), patch.object(
         mod, "_ensure_tables"
     ), patch.object(mod, "_connect", return_value=fake_conn), patch.object(mod, "_safe_close"):
         mod.upsert_training_stress_day(
@@ -133,7 +133,7 @@ def test_postgres_get_training_stress_days_returns_desc():
     ]
 
     mod = importlib.import_module("bike_analyzer.backend.db.postgres_rides")
-    with patch("bike_analyzer.backend.db.dispatch.is_postgres", return_value=True), patch.object(
+    with patch.object(mod, "has_postgres", return_value=True), patch.object(
         mod, "_ensure_tables"
     ), patch.object(mod, "_connect", return_value=fake_conn), patch.object(mod, "_safe_close"):
         rows = mod.get_training_stress_days(athlete_id=1, limit=10)
@@ -152,7 +152,7 @@ def test_postgres_save_metric_returns_id():
     fake_cur.fetchone.return_value = {"id": 99}
 
     mod = importlib.import_module("bike_analyzer.backend.db.postgres_rides")
-    with patch("bike_analyzer.backend.db.dispatch.is_postgres", return_value=True), patch.object(
+    with patch.object(mod, "has_postgres", return_value=True), patch.object(
         mod, "_ensure_tables"
     ), patch.object(mod, "_connect", return_value=fake_conn), patch.object(mod, "_safe_close"):
         result = mod.save_metric(

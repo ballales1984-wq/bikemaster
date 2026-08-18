@@ -250,7 +250,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useI18n } from "../composables/useI18n";
 import { apiGet, apiPost } from "../utils/api";
 import DOMPurify from "dompurify";
@@ -326,19 +326,28 @@ function getTime(): string {
   });
 }
 
+let scrollRaf = 0;
 async function scrollToBottom() {
-  await nextTick();
-  if (chatWindow.value) {
-    chatWindow.value.scrollTop = chatWindow.value.scrollHeight;
-  }
+  if (scrollRaf) cancelAnimationFrame(scrollRaf);
+  scrollRaf = requestAnimationFrame(() => {
+    scrollRaf = 0;
+    if (chatWindow.value) {
+      chatWindow.value.scrollTop = chatWindow.value.scrollHeight;
+    }
+  });
 }
 
+let resizeRaf = 0;
 function autoResize(e: Event) {
   const el = e.target as HTMLTextAreaElement;
-  const newHeight = Math.min(el.scrollHeight, 120);
-  if (el.style.height !== newHeight + "px") {
-    el.style.height = newHeight + "px";
-  }
+  if (resizeRaf) cancelAnimationFrame(resizeRaf);
+  resizeRaf = requestAnimationFrame(() => {
+    resizeRaf = 0;
+    const newHeight = Math.min(el.scrollHeight, 120);
+    if (el.style.height !== newHeight + "px") {
+      el.style.height = newHeight + "px";
+    }
+  });
 }
 
 const voiceSupported = ref(false);
