@@ -62,4 +62,8 @@ def record_call(month: str | None = None, n: int = 1) -> None:
         _safe_close(conn)
 
 
-__all__ = ["get_usage", "record_call"]
+get_maps_usage = get_usage
+record_maps_call = record_call
+
+
+__all__ = ["get_usage", "record_call", "get_maps_usage", "record_maps_call"]

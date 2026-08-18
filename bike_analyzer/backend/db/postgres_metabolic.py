@@ -312,6 +312,35 @@ def get_food_logs_by_athlete_date(
         _safe_close(conn)
 
 
+def get_food_logs_by_athlete(
+    athlete_id: int,
+    tenant_id: int | None = None,
+    limit: int = 2000,
+) -> list[dict]:
+    if not has_postgres():
+        raise RuntimeError("PostgreSQL not configured")
+    conn = _connect()
+    try:
+        _ensure_food_logs_table(conn)
+        with conn.cursor() as cur:
+            if tenant_id is not None:
+                cur.execute(
+                    "SELECT * FROM food_logs WHERE athlete_id = %s AND tenant_id = %s "
+                    "ORDER BY date ASC LIMIT %s",
+                    (athlete_id, tenant_id, limit),
+                )
+            else:
+                cur.execute(
+                    "SELECT * FROM food_logs WHERE athlete_id = %s "
+                    "ORDER BY date ASC LIMIT %s",
+                    (athlete_id, limit),
+                )
+            rows = cur.fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        _safe_close(conn)
+
+
 def update_food_log(log_id: int, log_data: dict) -> bool:
     if not has_postgres():
         raise RuntimeError("PostgreSQL not configured")
