@@ -253,3 +253,47 @@ def update_ride(ride_id: int, ride: dict, tenant_id: int | None = None) -> bool:
             cur.execute(f"UPDATE rides SET {', '.join(assignments)} WHERE id = ?", params)
         conn.commit()
         return cur.rowcount > 0
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_rides")
+def save_metric(metric: dict, tenant_id: int = 0) -> int:
+    """Insert a metrics row (fatigue, recovery, calories, efficiency) for a ride."""
+    now = datetime.now(UTC).isoformat()
+    with _get_db_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO metrics
+            (athlete_id, ride_id, fatigue_score, recovery_hours,
+             calories_per_km, efficiency_score, created_at, tenant_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                metric.get("athlete_id"),
+                metric.get("ride_id"),
+                metric.get("fatigue_score"),
+                metric.get("recovery_hours"),
+                metric.get("calories_per_km"),
+                metric.get("efficiency_score"),
+                now,
+                metric.get("tenant_id", tenant_id),
+            ),
+        )
+        conn.commit()
+        return cur.lastrowid
+
+
+@pg_dispatch("bike_analyzer.backend.db.postgres_rides")
+def get_metrics_by_athlete(athlete_id: int, tenant_id: int | None = None) -> list[dict]:
+    with _get_db_connection() as conn:
+        cur = conn.cursor()
+        if tenant_id is not None:
+            cur.execute(
+                "SELECT * FROM metrics WHERE athlete_id = ? AND tenant_id = ? ORDER BY created_at ASC",
+                (athlete_id, tenant_id),
+            )
+        else:
+            cur.execute(
+                "SELECT * FROM metrics WHERE athlete_id = ? ORDER BY created_at ASC",
+                (athlete_id,),
+            )
+        rows = cur.fetchall()
+    return [dict(r) for r in rows]
