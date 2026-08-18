@@ -17,7 +17,7 @@ import "./index.css";
 import { useAuthStore } from "./stores/auth";
 import { useUIStore } from "./stores/ui";
 import { initI18n } from "./composables/useI18n";
-import { isTauri } from "./utils/backend-config";
+import { isTauri, getBackendMode } from "./utils/backend-config";
 import "./composables/usePWA";
 import { processOAuthToken, hasPendingOAuth } from "./services/oauth";
 import { syncAuthState } from "./services/authSync";
@@ -120,7 +120,7 @@ window.addEventListener("pageshow", (event: PageTransitionEvent) => {
   }
 });
 
-if ("serviceWorker" in navigator && !isTauri()) {
+if ("serviceWorker" in navigator && !isTauri() && getBackendMode() !== "local") {
   navigator.serviceWorker
     .register("/sw.js", { scope: "/" })
     .then((reg) => {

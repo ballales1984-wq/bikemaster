@@ -37,8 +37,9 @@ const isTauri =
   env.TAURI_ENV_PLATFORM === "win32" ||
   env.TAURI_ENV_PLATFORM === "darwin" ||
   env.TAURI_ENV_PLATFORM === "linux";
+const isLocalStatic = process.env.SERVE_STATIC === "true";
 const isDev = process.env.NODE_ENV !== "production";
-console.log("[vite-config] NODE_ENV:", process.env.NODE_ENV, "isDev:", isDev, "isTauri:", isTauri);
+console.log("[vite-config] NODE_ENV:", process.env.NODE_ENV, "isDev:", isDev, "isTauri:", isTauri, "isLocalStatic:", isLocalStatic);
 
 export default defineConfig({
   base: isTauri ? "./" : "/",
@@ -49,7 +50,7 @@ export default defineConfig({
   },
   plugins: [
     vue(),
-      !isTauri && !isDev &&
+      !isTauri && !isDev && !isLocalStatic &&
       VitePWA({
         srcDir: "src",
         filename: "sw.js",
@@ -79,7 +80,7 @@ export default defineConfig({
     exclude: ["@sqlite.org/sqlite-wasm"],
   },
   server: {
-    host: "0.0.0.0",
+    host: "localhost",
     port: 5177,
     strictPort: true,
     headers: {

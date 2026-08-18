@@ -124,10 +124,11 @@
       </button>
     </form>
 
-    <div class="oauth-separator">
+    <div v-if="!isLocalMode" class="oauth-separator">
       <span>{{ t("common.or") }}</span>
     </div>
     <button
+      v-if="!isLocalMode"
       class="btn btn-google"
       :disabled="loading"
       type="button"
@@ -162,7 +163,7 @@ import { ref, computed } from "vue";
 import { useI18n } from "../composables/useI18n";
 import { useUIStore } from "../stores/ui";
 import { useAuthStore } from "../stores/auth";
-import { resolveApiBase } from "../utils/backend-config";
+import { resolveApiBase, getBackendMode } from "../utils/backend-config";
 
 const { t } = useI18n();
 const ui = useUIStore();
@@ -186,6 +187,8 @@ const isFormValid = computed(() => {
       : form.value.password.length > 0;
   return userOk && passOk && !usernameError.value && !passwordError.value;
 });
+
+const isLocalMode = computed(() => getBackendMode() === "local");
 
 function validate() {
   usernameError.value = "";

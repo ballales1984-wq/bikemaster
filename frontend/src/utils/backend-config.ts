@@ -196,5 +196,6 @@ export function getBackendMode(): BackendMode {
   if (!base) return isTauri() ? "local" : "local";
   if (isTauri() && base === TAURI_EMBEDDED_BACKEND_BASE) return "tauri";
   if (base.includes("onrender.com")) return "render";
+  if (base.includes("localhost") || base.includes("127.0.0.1")) return "local";
   return "hub";
 }
