@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 
 const apiGet = vi.hoisted(() => vi.fn());
-vi.mock("../utils/api.ts", () => ({ apiGet }));
+vi.mock("../utils/api", () => ({ apiGet, apiPost: vi.fn(), apiDelete: vi.fn() }));
+vi.mock("../utils/api.ts", () => ({ apiGet, apiPost: vi.fn(), apiDelete: vi.fn() }));
 
 const toastSuccess = vi.fn();
 const toastError = vi.fn();

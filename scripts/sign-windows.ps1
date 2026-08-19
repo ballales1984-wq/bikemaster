@@ -77,7 +77,8 @@ if ($Target) {
     foreach ($sub in @("msi", "nsis")) {
         $dir = "$bundleDir/$sub"
         if (Test-Path $dir) {
-            $files += Get-ChildItem $dir -Filter "*.msi", "*.exe" | Select-Object -ExpandProperty FullName
+            $files += Get-ChildItem $dir -Filter "*.msi" | Select-Object -ExpandProperty FullName
+            $files += Get-ChildItem $dir -Filter "*.exe" | Select-Object -ExpandProperty FullName
         }
     }
 }

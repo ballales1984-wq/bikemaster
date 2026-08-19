@@ -45,7 +45,9 @@ Responsibilities:
     </template>
 
     <template v-else>
-      <router-view />
+      <ErrorBoundary>
+        <router-view />
+      </ErrorBoundary>
     </template>
 
     <PWAInstallPrompt />
@@ -64,6 +66,7 @@ import { apiGet } from "./utils/api";
 import LoginForm from "./components/LoginForm.vue";
 import PWAInstallPrompt from "./components/PWAInstallPrompt.vue";
 import ConsentBanner from "./components/ConsentBanner.vue";
+import ErrorBoundary from "./components/ErrorBoundary.vue";
 import AppLayout from "./layouts/AppLayout.vue";
 
 const auth = useAuthStore();

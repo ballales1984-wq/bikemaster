@@ -255,7 +255,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, Directive } from "vue";
+import { ref, watch, onUnmounted, Directive } from "vue";
 import BmSkeleton from "./BmSkeleton.vue";
 
 const props = defineProps({
@@ -293,6 +293,22 @@ const animatedHours = ref(0);
 
 let statsRaf: number | null = null;
 
+function safeRequestAnimationFrame(cb: FrameRequestCallback): number {
+  if (typeof requestAnimationFrame !== "undefined") {
+    return requestAnimationFrame(cb);
+  }
+  return setTimeout(() => cb(performance.now()), 16) as unknown as number;
+}
+
+function safeCancelAnimationFrame(id: number | null) {
+  if (!id) return;
+  if (typeof cancelAnimationFrame !== "undefined") {
+    cancelAnimationFrame(id);
+  } else {
+    clearTimeout(id as unknown as number);
+  }
+}
+
 function animateStats(targets: {
   rides: number;
   dist: number;
@@ -300,7 +316,7 @@ function animateStats(targets: {
   speed: number;
   hours: number;
 }) {
-  if (statsRaf) cancelAnimationFrame(statsRaf);
+  if (statsRaf) safeCancelAnimationFrame(statsRaf);
   const startTime = performance.now();
   const from = {
     rides: animatedRides.value,
@@ -330,13 +346,20 @@ function animateStats(targets: {
       (from.hours + (targets.hours - from.hours) * eased).toFixed(1),
     );
     if (progress < 1) {
-      statsRaf = requestAnimationFrame(step);
+      statsRaf = safeRequestAnimationFrame(step);
     } else {
       statsRaf = null;
     }
   }
-  statsRaf = requestAnimationFrame(step);
+  statsRaf = safeRequestAnimationFrame(step);
 }
+
+onUnmounted(() => {
+  if (statsRaf) {
+    safeCancelAnimationFrame(statsRaf);
+    statsRaf = null;
+  }
+});
 
 watch(
   () => props.stats,

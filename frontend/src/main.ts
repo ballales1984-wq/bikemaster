@@ -120,7 +120,11 @@ window.addEventListener("pageshow", (event: PageTransitionEvent) => {
   }
 });
 
-if ("serviceWorker" in navigator && !isTauri() && getBackendMode() !== "local") {
+if (
+  "serviceWorker" in navigator &&
+  !isTauri() &&
+  getBackendMode() !== "local"
+) {
   navigator.serviceWorker
     .register("/sw.js", { scope: "/" })
     .then((reg) => {

@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
+const apiGet = vi.hoisted(() => vi.fn());
+vi.mock("../utils/api", () => ({
+  apiGet,
+  apiPost: vi.fn(),
+  apiDelete: vi.fn(),
+}));
+
 vi.mock("../utils/localRideCache", () => ({
   cacheRides: vi.fn().mockResolvedValue(undefined),
   cacheSummary: vi.fn().mockResolvedValue(undefined),
@@ -10,12 +17,7 @@ vi.mock("../utils/localRideCache", () => ({
 
 describe("useRides composable", () => {
   it("fetchSummary returns default values on error", async () => {
-    const mockApiGet = vi.fn().mockRejectedValue(new Error("Network error"));
-    vi.doMock("../utils/api", () => ({
-      apiGet: mockApiGet,
-      apiPost: vi.fn(),
-      apiDelete: vi.fn(),
-    }));
+    apiGet.mockRejectedValue(new Error("Network error"));
 
     const { useRides } = await import("../composables/useRides.ts");
     const result = await useRides().fetchSummary();
@@ -43,12 +45,7 @@ describe("useRides composable", () => {
       ],
       total: 2,
     };
-    const mockApiGet = vi.fn().mockResolvedValue(mockData);
-    vi.doMock("../utils/api", () => ({
-      apiGet: mockApiGet,
-      apiPost: vi.fn(),
-      apiDelete: vi.fn(),
-    }));
+    apiGet.mockResolvedValue(mockData);
 
     const { useRides } = await import("../composables/useRides.ts");
 
