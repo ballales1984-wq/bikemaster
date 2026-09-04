@@ -32,6 +32,29 @@ class ImportService:
         tenant_id: int = 0,
         weight_kg: float = 70.0,
     ) -> dict:
+        """Import a GPS activity file (GPX, TCX, or FIT) into the database.
+
+        Parses the file, normalizes it into a ride dict, enriches calories when
+        missing, and persists via RideRepository.
+
+        Args:
+            file_type: One of ``"gpx"``, ``"tcx"``, or ``"fit"``.
+            file_path: Path to the file on disk. Required for FIT; optional for
+                GPX/TCX if ``content`` is provided instead.
+            content: Raw XML/bytes string of the file. Used for GPX/TCX when
+                ``file_path`` is not available.
+            name: Optional ride name override.
+            athlete_id: Athlete identifier to associate with the ride.
+            tenant_id: Tenant identifier for multi-tenant isolation.
+            weight_kg: Rider weight in kilograms used for calorie estimation.
+
+        Returns:
+            A dict representing the saved ride, including the generated ``id``.
+
+        Raises:
+            ValueError: If ``file_type`` is unsupported or FIT import is missing
+                ``file_path``.
+        """
         if file_type == "gpx":
             if content is None and file_path:
                 content = Path(file_path).read_text(encoding="utf-8")
