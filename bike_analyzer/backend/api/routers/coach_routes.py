@@ -238,6 +238,8 @@ async def _process_chat(athlete_id: int, message: str, current_user: dict):
 
         ChatRepository.save_chat_message(athlete_id, "user", message[:500], tenant_id)
         athlete_data = await AthleteRepository().get_by_id(athlete_id, tenant_id)
+        if athlete_data is None:
+            athlete_data = await AthleteRepository().get_by_id(athlete_id)
         if athlete_data:
             athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
         athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
@@ -283,6 +285,8 @@ async def coach_chat_bm2(
         _ensure_athlete_access(athlete_id, current_user)
 
         athlete_data = await AthleteRepository().get_by_id(athlete_id, tenant_id)
+        if athlete_data is None:
+            athlete_data = await AthleteRepository().get_by_id(athlete_id)
         if athlete_data:
             athlete_data = {k: v for k, v in athlete_data.items() if k != "password_hash"}
         athlete = AthleteProfile(**_athlete_profile_data(athlete_data)) if athlete_data else AthleteProfile()
