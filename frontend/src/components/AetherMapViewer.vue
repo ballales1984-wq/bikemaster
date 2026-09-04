@@ -64,6 +64,32 @@
         <br />terrain: slope avg {{ avgSlope }}% · ombra {{ shadePct }}% ·
         traffico {{ avgTraffic }}
       </template>
+
+      <div v-if="activeRoutePoints.length > 1" class="aethermap-profile-overlay">
+        <div class="aethermap-profile-header">
+          <span>Profilo Altimetrico 3D</span>
+          <span v-if="activeHoverPoint" class="aethermap-profile-meta">
+            Alt: {{ Math.round(activeHoverPoint.altitude || 0) }} m
+            <template v-if="activeHoverPoint.speed"> · {{ activeHoverPoint.speed.toFixed(1) }} km/h</template>
+          </span>
+        </div>
+        <svg
+          class="aethermap-profile-svg"
+          viewBox="0 0 300 40"
+          preserveAspectRatio="none"
+          @mousemove="onProfileMouseMove"
+          @mouseleave="internalHoverIndex = null"
+        >
+          <polyline :points="profileSvgPoints" fill="none" stroke="#00f3ff" stroke-width="2" />
+          <circle
+            v-if="activeHoverSvgCoords"
+            :cx="activeHoverSvgCoords.x"
+            :cy="activeHoverSvgCoords.y"
+            r="4"
+            fill="#00f3ff"
+          />
+        </svg>
+      </div>
     </div>
   </div>
 </template>
@@ -93,13 +119,44 @@ const DEMO_POINTS: MapPoint[] = [
   { lat: 45.003, lon: 9.006, speed: 28, altitude: 123 },
 ];
 
-const props = defineProps<{
-  points?: MapPoint[];
-  rideIds?: number[];
-  colorBySpeed?: boolean;
-  terrainEnriched?: boolean;
-  demSource?: "auto" | "procedural" | "copernicus" | "lidar" | "osm";
-}>();
+const props = withDefaults(
+  defineProps<{
+    points?: MapPoint[];
+    rideIds?: number[];
+    colorBySpeed?: boolean;
+    terrainEnriched?: boolean;
+    demSource?: "auto" | "procedural" | "copernicus" | "lidar" | "osm";
+    cameraMode?: "orbit" | "topDown" | "follow";
+    sunHour?: number;
+    verticalExaggeration?: number;
+    wireframe?: boolean;
+    hoverProgress?: number | null;
+  }>(),
+  {
+    colorBySpeed: false,
+    terrainEnriched: false,
+    demSource: "auto",
+    cameraMode: "orbit",
+    sunHour: 12,
+    verticalExaggeration: 1.0,
+    wireframe: false,
+    hoverProgress: null,
+  },
+);
+
+const DEG = Math.PI / 180;
+const EARTH_R = 6371000.0;
+const GLOBE_RADIUS = 1.0;
+const TERRAIN_SCALE = 1.0 / EARTH_R;
+const SKIRT_HEIGHT = 0.0003;
+const CAM_DIST = 2.7;
+const CAM_DIST_MIN = 1.3;
+const CAM_DIST_MAX = 8.0;
+const CAM_FOV = (50 * Math.PI) / 180;
+const CAM_NEAR = 0.1;
+const CAM_FAR = 100.0;
+
+type Vec3 = [number, number, number];
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 let gl: WebGL2RenderingContext | null = null;
@@ -144,6 +201,12 @@ let markerBuffer: {
   mode: number;
   stride: number;
 } | null = null;
+let riderMarkerBuffer: {
+  buf: WebGLBuffer;
+  count: number;
+  mode: number;
+  stride: number;
+} | null = null;
 let terrainBuffer: {
   buf: WebGLBuffer;
   count: number;
@@ -160,6 +223,15 @@ let cachedCamDist = -1;
 let cachedYaw = 0;
 let cachedPitch = 0;
 
+let camDist = CAM_DIST;
+let targetYaw = 0.6;
+let targetPitch = 0.35;
+let targetCamDist = CAM_DIST;
+let animatingCamera = false;
+let followIndex = 0;
+let currentLOD = -1;
+let globePending = false;
+
 const firstRideId = computed(() => props.rideIds?.[0] ?? null);
 const terrain = useAetherMapTerrain(
   firstRideId,
@@ -167,45 +239,96 @@ const terrain = useAetherMapTerrain(
 );
 const terrainPoints = computed(() => terrain.points.value);
 
-const avgSlope = computed(() => {
-  const pts = terrainPoints.value;
-  if (!pts.length) return 0;
-  return (pts.reduce((s, p) => s + (p.slope_pct || 0), 0) / pts.length).toFixed(
-    1,
-  );
-});
-const shadePct = computed(() => {
-  const pts = terrainPoints.value;
-  if (!pts.length) return 0;
-  const shaded = pts.filter((p) => p.shade).length;
-  return ((shaded / pts.length) * 100).toFixed(0);
-});
-const avgTraffic = computed(() => {
-  const pts = terrainPoints.value;
-  if (!pts.length) return 0;
-  return (
-    pts.reduce((s, p) => s + (p.traffic_level || 0), 0) / pts.length
-  ).toFixed(2);
-});
-
-watch(
-  () => props.demSource,
-  () => {
-    terrainTileCache.clear();
-    currentLOD = -1;
-  },
-);
-
-watch(
-  () => props.terrainEnriched,
-  (val) => {
-    if (val && firstRideId.value) terrain.reload();
-  },
-);
-
 const rideIdsRef = computed(() => props.rideIds ?? []);
 const { scene, loading, error } = useAetherMap(rideIdsRef);
-const { layers, visibleLayers, toggleLayer, loadLayer } = useAetherMapGeo();
+const { layers, visibleLayers, toggleLayer } = useAetherMapGeo();
+
+const activeRoutePoints = computed<MapPoint[]>(() => {
+  if (scene.value?.entities?.length) {
+    const pts: MapPoint[] = [];
+    for (const ent of scene.value.entities) {
+      if (ent.tipo === "segment" && ent.pts?.length) {
+        for (const p of ent.pts) {
+          if (p.length >= 2) {
+            pts.push({ lat: p[0], lon: p[1], speed: 20, altitude: p[2] ?? 0 });
+          }
+        }
+      }
+    }
+    if (pts.length) return pts;
+  }
+  if (props.points && props.points.length) return props.points;
+  return DEMO_POINTS;
+});
+
+const internalHoverIndex = ref<number | null>(null);
+const activeHoverIndex = computed<number | null>(() => {
+  if (props.hoverProgress != null && activeRoutePoints.value.length) {
+    return Math.min(
+      activeRoutePoints.value.length - 1,
+      Math.max(
+        0,
+        Math.floor(props.hoverProgress * (activeRoutePoints.value.length - 1)),
+      ),
+    );
+  }
+  return internalHoverIndex.value;
+});
+
+const activeHoverPoint = computed<MapPoint | null>(() => {
+  const idx = activeHoverIndex.value;
+  if (idx == null || !activeRoutePoints.value[idx]) return null;
+  return activeRoutePoints.value[idx];
+});
+
+const profileSvgPoints = computed(() => {
+  const pts = activeRoutePoints.value;
+  if (pts.length < 2) return "";
+  let minElev = Infinity,
+    maxElev = -Infinity;
+  for (const p of pts) {
+    const alt = p.altitude || 0;
+    if (alt < minElev) minElev = alt;
+    if (alt > maxElev) maxElev = alt;
+  }
+  const span = Math.max(1, maxElev - minElev);
+  return pts
+    .map((p, i) => {
+      const x = ((i / (pts.length - 1)) * 300).toFixed(1);
+      const y = (36 - (((p.altitude || 0) - minElev) / span) * 32).toFixed(1);
+      return `${x},${y}`;
+    })
+    .join(" ");
+});
+
+const activeHoverSvgCoords = computed(() => {
+  const idx = activeHoverIndex.value;
+  const pts = activeRoutePoints.value;
+  if (idx == null || pts.length < 2) return null;
+  let minElev = Infinity,
+    maxElev = -Infinity;
+  for (const p of pts) {
+    const alt = p.altitude || 0;
+    if (alt < minElev) minElev = alt;
+    if (alt > maxElev) maxElev = alt;
+  }
+  const span = Math.max(1, maxElev - minElev);
+  const p = pts[idx];
+  const x = (idx / (pts.length - 1)) * 300;
+  const y = 36 - (((p.altitude || 0) - minElev) / span) * 32;
+  return { x, y };
+});
+
+function onProfileMouseMove(e: MouseEvent) {
+  const svg = e.currentTarget as SVGElement;
+  const rect = svg.getBoundingClientRect();
+  if (rect.width <= 0) return;
+  const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  internalHoverIndex.value = Math.floor(
+    pct * (activeRoutePoints.value.length - 1),
+  );
+}
+
 const geoLayers = computed<
   Array<{
     id: string;
@@ -219,12 +342,7 @@ const geoLayers = computed<
   }>
 >(() => Array.from(layers.value.values()));
 
-onMounted(async () => {
-  await loadLayer("natural-earth", "natural-earth", { resolution: "110" });
-  updateGeoBuffers();
-});
-
-let geoBufferMap: Map<
+const geoBufferMap: Map<
   string,
   { buf: WebGLBuffer; count: number; mode: number; stride: number }
 > = new Map();
@@ -258,12 +376,6 @@ const terrainTileCache = new LRUCache<string, { h: Float32Array; ts: number }>(
 );
 const TILE_CACHE_TTL = 60 * 60 * 1000;
 
-const DEG = Math.PI / 180;
-const EARTH_R = 6371000.0;
-const GLOBE_RADIUS = 1.0;
-const TERRAIN_SCALE = 1.0 / EARTH_R;
-const SKIRT_HEIGHT = 0.0003;
-
 function geodeticToDirection(
   lat: number,
   lon: number,
@@ -274,7 +386,6 @@ function geodeticToDirection(
   return [cl * Math.cos(lo), cl * Math.sin(lo), Math.sin(la)];
 }
 
-type Vec3 = [number, number, number];
 function toDir(p: number[]): Vec3 {
   if (p.length >= 3 && Math.abs(p[0]) > 1e5) {
     const n = Math.hypot(p[0], p[1], p[2]) || 1;
@@ -319,408 +430,105 @@ function speedColor(speed: number | undefined): [number, number, number] {
   return [0.93, 0.2, 0.2];
 }
 
-function toggleGeoLayer(id: string): void {
-  toggleLayer(id);
-  updateGeoBuffers();
-}
-
 function markerColor(tipo: string): [number, number, number] {
   if (tipo === "start") return [0.2, 0.9, 0.3];
   if (tipo === "end") return [0.95, 0.3, 0.3];
   return [1.0, 0.85, 0.2];
 }
 
-// --- Procedural terrain (frontend-side, matches backend terrain.py) ---
-function hash(x: number, y: number): number {
-  const buf = new ArrayBuffer(8);
-  const view = new DataView(buf);
-  view.setUint32(0, (x | 0) ^ 0xae7e5, true);
-  view.setUint32(4, (y | 0) ^ 0x5e7ae, true);
-  const bytes = new Uint8Array(buf);
-  let h = 0;
-  for (let i = 0; i < bytes.length; i++) h = ((h << 5) - h + bytes[i]) | 0;
-  return (h & 0xffff) / 0xffff;
+function toggleGeoLayer(id: string): void {
+  toggleLayer(id);
+  updateGeoBuffers();
 }
 
-function smooth(t: number): number {
-  return t * t * (3 - 2 * t);
-}
-
-function noise2d(x: number, y: number): number {
-  const xi = Math.floor(x);
-  const yi = Math.floor(y);
-  const xf = x - xi;
-  const yf = y - yi;
-  const ux = smooth(xf);
-  const uy = smooth(yf);
-  const a = hash(xi, yi);
-  const b = hash(xi + 1, yi);
-  const c = hash(xi, yi + 1);
-  const d = hash(xi + 1, yi + 1);
-  return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
-}
-
-function fbm(x: number, y: number, octaves = 6): number {
-  let value = 0;
-  let amplitude = 0.5;
-  let frequency = 1;
-  for (let i = 0; i < octaves; i++) {
-    value += amplitude * noise2d(x * frequency, y * frequency);
-    frequency *= 2;
-    amplitude *= 0.5;
+function updateRiderMarkerBuffer(p: MapPoint | null) {
+  if (riderMarkerBuffer && gl) {
+    gl.deleteBuffer(riderMarkerBuffer.buf);
+    riderMarkerBuffer = null;
   }
-  return value;
+  if (!p || !gl) return;
+  const dir = geodeticToDirection(p.lat, p.lon);
+  const elev =
+    (p.altitude || 0) * TERRAIN_SCALE * (props.verticalExaggeration ?? 1.0);
+  const r = GLOBE_RADIUS + elev + 0.003;
+  const col: Vec3 = [0.0, 1.0, 0.95];
+  const data = [dir[0] * r, dir[1] * r, dir[2] * r, col[0], col[1], col[2]];
+  riderMarkerBuffer = makeBuffer(new Float32Array(data), gl.POINTS, 6);
 }
 
-function getTerrainHeight(lat: number, lon: number): number {
-  const latR = lat * DEG;
-  const lonR = lon * DEG;
-  const continent = continentHeight(lat, lon);
-  if (continent <= 0.0) return 0.0;
-  const n = fbm(lonR * 3, latR * 3, 6);
-  const n2 = fbm(lonR * 7 + 100, latR * 7 + 100, 4);
-  const mask = n * 0.7 + n2 * 0.3;
-  const threshold = 0.48 + 0.08 * Math.sin(latR * 2);
-  if (mask > threshold) {
-    const detail = fbm(lonR * 15, latR * 15, 4);
-    let elevation = ((mask - threshold) / (1 - threshold)) * 0.7 + detail * 0.3;
-    if (latR > 1.2) elevation *= Math.max(0, 1 - (latR - 1.2) / 0.4);
-    return Math.max(0, elevation) * 4000 * continent;
+watch(activeHoverPoint, (pt) => {
+  updateRiderMarkerBuffer(pt);
+});
+
+function focusOnRoute(): void {
+  const pts = activeRoutePoints.value;
+  if (!pts.length) return;
+  let minLat = 90,
+    maxLat = -90,
+    minLon = 180,
+    maxLon = -180;
+  let sumLat = 0,
+    sumLon = 0;
+  for (const p of pts) {
+    minLat = Math.min(minLat, p.lat);
+    maxLat = Math.max(maxLat, p.lat);
+    minLon = Math.min(minLon, p.lon);
+    maxLon = Math.max(maxLon, p.lon);
+    sumLat += p.lat;
+    sumLon += p.lon;
   }
-  return 0.0;
-}
+  const avgLat = sumLat / pts.length;
+  const avgLon = sumLon / pts.length;
+  const latSpan = Math.abs(maxLat - minLat);
+  const lonSpan = Math.abs(maxLon - minLon);
+  const maxSpan = Math.max(latSpan, lonSpan);
 
-function continentHeight(lat: number, lon: number): number {
-  const m = Math.max(
-    smoothEllipseJS(lat, lon, 45.0, -100.0, 22.0, 28.0),
-    smoothEllipseJS(lat, lon, 30.0, -90.0, 10.0, 15.0) * 0.8,
-    smoothEllipseJS(lat, lon, -15.0, -55.0, 12.0, 18.0) * 0.9,
-    smoothEllipseJS(lat, lon, 50.0, 10.0, 12.0, 18.0) * 0.85,
-    smoothEllipseJS(lat, lon, 5.0, 20.0, 22.0, 22.0) * 0.9,
-    smoothEllipseJS(lat, lon, 40.0, 80.0, 25.0, 40.0) * 0.85,
-    smoothEllipseJS(lat, lon, 55.0, 100.0, 12.0, 20.0) * 0.7,
-    smoothEllipseJS(lat, lon, -25.0, 135.0, 10.0, 14.0) * 0.8,
+  targetCamDist = Math.max(
+    CAM_DIST_MIN,
+    Math.min(CAM_DIST_MAX, 1.4 + maxSpan * 10.0),
   );
-  if (Math.abs(lat) > 75) return 0.5;
-  const detail = fbm(lon * 3, lat * 3, 4) * 0.2;
-  const v = Math.max(0, Math.min(1, (m + detail - 0.45) / 0.2));
-  return v;
+  targetYaw = (avgLon * Math.PI) / 180 + Math.PI / 2;
+  targetPitch = Math.max(-1.4, Math.min(1.4, (avgLat * Math.PI) / 180));
+  animatingCamera = true;
 }
 
-function smoothEllipseJS(
-  lat: number,
-  lon: number,
-  clat: number,
-  clon: number,
-  rlat: number,
-  rlon: number,
-): number {
-  const dlat = (lat - clat) / rlat;
-  const dlon = (lon - clon) / rlon;
-  const d = dlat * dlat + dlon * dlon;
-  return 1.0 - smoothJS(Math.max(0, Math.min(1, (d - 0.7) / 0.3)));
-}
+defineExpose({ focusOnRoute });
 
-function smoothJS(t: number): number {
-  return t * t * (3 - 2 * t);
-}
-
-const isMobileDevice = (): boolean => {
-  if (typeof navigator === "undefined") return false;
-  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(
-    navigator.userAgent,
+const avgSlope = computed(() => {
+  const pts = terrainPoints.value;
+  if (!pts.length) return 0;
+  return (pts.reduce((s, p) => s + (p.slope_pct || 0), 0) / pts.length).toFixed(
+    1,
   );
-};
+});
+const shadePct = computed(() => {
+  const pts = terrainPoints.value;
+  if (!pts.length) return 0;
+  const shaded = pts.filter((p) => p.shade).length;
+  return ((shaded / pts.length) * 100).toFixed(0);
+});
+const avgTraffic = computed(() => {
+  const pts = terrainPoints.value;
+  if (!pts.length) return 0;
+  return (
+    pts.reduce((s, p) => s + (p.traffic_level || 0), 0) / pts.length
+  ).toFixed(2);
+});
 
-const MOBILE_LOD_OFFSET = isMobileDevice() ? 2 : 0;
+watch(
+  () => props.demSource,
+  () => {
+    terrainTileCache.clear();
+    currentLOD = -1;
+  },
+);
 
-function getLODResolution(camDist: number): number {
-  let res = 0;
-  if (camDist < 2.0) res = 48;
-  else if (camDist < 3.5) res = 32;
-  else if (camDist < 5.0) res = 20;
-  else if (camDist < 6.5) res = 12;
-  else res = 8;
-  return Math.max(8, res - MOBILE_LOD_OFFSET);
-}
-
-async function fetchTerrainTile(
-  minLat: number,
-  maxLat: number,
-  minLon: number,
-  maxLon: number,
-  resolution: number,
-  face: number = -1,
-): Promise<Float32Array | null> {
-  const source = props.demSource || "auto";
-  const key = `${face}_${source}_${minLat.toFixed(1)}_${maxLat.toFixed(1)}_${minLon.toFixed(1)}_${maxLon.toFixed(1)}_${resolution}`;
-  const cached = terrainTileCache.get(key);
-  if (cached && Date.now() - cached.ts < TILE_CACHE_TTL) {
-    return cached.h;
-  }
-  try {
-    const data = await apiGet<{ heights: number[] }>(
-      "/api/v1/aethermap/terrain",
-      {
-        min_lat: String(minLat),
-        max_lat: String(maxLat),
-        min_lon: String(minLon),
-        max_lon: String(maxLon),
-        resolution: String(resolution),
-        source: source,
-      },
-      { timeoutMs: 1500 },
-    );
-    const heights = new Float32Array(data.heights);
-    terrainTileCache.set(key, { h: heights, ts: Date.now() });
-    return heights;
-  } catch {
-    return null;
-  }
-}
-
-function sampleTerrainTile(
-  tileHeights: Float32Array,
-  resolution: number,
-  u: number,
-  v: number,
-): number {
-  const x = u * (resolution - 1);
-  const y = v * (resolution - 1);
-  const x0 = Math.floor(x);
-  const y0 = Math.floor(y);
-  const x1 = Math.min(x0 + 1, resolution - 1);
-  const y1 = Math.min(y0 + 1, resolution - 1);
-  const fx = x - x0;
-  const fy = y - y0;
-  const h00 = tileHeights[y0 * resolution + x0] || 0;
-  const h10 = tileHeights[y0 * resolution + x1] || 0;
-  const h01 = tileHeights[y1 * resolution + x0] || 0;
-  const h11 = tileHeights[y1 * resolution + x1] || 0;
-  const h0 = h00 + (h10 - h00) * fx;
-  const h1 = h01 + (h11 - h01) * fx;
-  return h0 + (h1 - h0) * fy;
-}
-
-function faceLatLonBounds(face: number): {
-  minLat: number;
-  maxLat: number;
-  minLon: number;
-  maxLon: number;
-} {
-  const corners = [
-    faceDir(face, -1, -1),
-    faceDir(face, 1, -1),
-    faceDir(face, -1, 1),
-    faceDir(face, 1, 1),
-  ];
-  let minLat = Infinity,
-    maxLat = -Infinity;
-  const lons: number[] = [];
-  for (const c of corners) {
-    const { lat, lon } = latLonFromDir(c);
-    minLat = Math.min(minLat, lat);
-    maxLat = Math.max(maxLat, lat);
-    lons.push(lon);
-  }
-
-  // Polar faces (top/bottom of cube-sphere) have all corners at the same
-  // latitude and wrap around the globe in longitude.
-  if (maxLat - minLat < 1e-3) {
-    return {
-      minLat: face === 5 ? -90 : minLat,
-      maxLat: face === 4 ? 90 : maxLat,
-      minLon: -180,
-      maxLon: 180,
-    };
-  }
-
-  const unwrapped = [lons[0]];
-  for (let i = 1; i < lons.length; i++) {
-    let diff = lons[i] - unwrapped[i - 1];
-    if (diff > 180) unwrapped.push(lons[i] - 360);
-    else if (diff < -180) unwrapped.push(lons[i] + 360);
-    else unwrapped.push(lons[i]);
-  }
-  let minLon = Math.min(...unwrapped);
-  let maxLon = Math.max(...unwrapped);
-  if (minLon < -180) {
-    minLon += 360;
-    maxLon += 360;
-  } else if (maxLon > 180) {
-    minLon -= 360;
-    maxLon -= 360;
-  }
-  return { minLat, maxLat, minLon, maxLon };
-}
-
-function buildTerrainMesh(tiles: (Float32Array | null)[], N: number) {
-  const verts: Vec3[][][] = [];
-  const skirtVerts: Vec3[][][] = [];
-
-  for (let f = 0; f < 6; f++) {
-    verts[f] = [];
-    skirtVerts[f] = [];
-    const bounds = faceLatLonBounds(f);
-    const tile = tiles[f];
-    for (let i = 0; i <= N; i++) {
-      verts[f][i] = [];
-      skirtVerts[f][i] = [];
-      for (let j = 0; j <= N; j++) {
-        const u = (i / N) * 2 - 1;
-        const v = (j / N) * 2 - 1;
-        const dir = faceDir(f, u, v);
-        const { lat, lon } = latLonFromDir(dir);
-        let terrainH = 0;
-        if (tile) {
-          let wrappedLon = lon;
-          const span = bounds.maxLon - bounds.minLon;
-          while (wrappedLon < bounds.minLon) wrappedLon += 360;
-          while (wrappedLon > bounds.minLon + span) wrappedLon -= 360;
-          const tileU = (wrappedLon - bounds.minLon) / span;
-          const tileV =
-            1.0 - (lat - bounds.minLat) / (bounds.maxLat - bounds.minLat);
-          const clampedU = Math.max(0, Math.min(1, tileU));
-          const clampedV = Math.max(0, Math.min(1, tileV));
-          terrainH = sampleTerrainTile(tile, N, clampedU, clampedV);
-        } else {
-          terrainH = getTerrainHeight(lat, lon);
-        }
-        const scaledH = terrainH * TERRAIN_SCALE;
-        const r = GLOBE_RADIUS + scaledH;
-        const pos: Vec3 = [dir[0] * r, dir[1] * r, dir[2] * r];
-        verts[f][i][j] = pos;
-
-        if (i === 0 || i === N || j === 0 || j === N) {
-          const sk: Vec3 = [
-            dir[0] * (r + SKIRT_HEIGHT),
-            dir[1] * (r + SKIRT_HEIGHT),
-            dir[2] * (r + SKIRT_HEIGHT),
-          ];
-          skirtVerts[f][i][j] = sk;
-        } else {
-          skirtVerts[f][i][j] = pos;
-        }
-      }
-    }
-  }
-
-  const positions: number[] = [];
-  const normals: number[] = [];
-  const indices: number[] = [];
-  let vertexCount = 0;
-
-  function addVertex(pos: Vec3, norm: Vec3) {
-    positions.push(pos[0], pos[1], pos[2]);
-    normals.push(norm[0], norm[1], norm[2]);
-    return vertexCount++;
-  }
-
-  for (let f = 0; f < 6; f++) {
-    const faceVerts: number[][] = [];
-    const faceSkirt: number[][] = [];
-
-    for (let i = 0; i <= N; i++) {
-      faceVerts[i] = [];
-      faceSkirt[i] = [];
-      for (let j = 0; j <= N; j++) {
-        const pos = verts[f][i][j];
-        const sk = skirtVerts[f][i][j];
-        faceVerts[i][j] = addVertex(pos, normalize3(pos));
-        faceSkirt[i][j] = addVertex(sk, normalize3(pos));
-      }
-    }
-
-    for (let i = 0; i < N; i++) {
-      for (let j = 0; j < N; j++) {
-        const a = faceVerts[i][j];
-        const b = faceVerts[i + 1][j];
-        const c = faceVerts[i][j + 1];
-        const d = faceVerts[i + 1][j + 1];
-        indices.push(a, b, c, b, d, c);
-      }
-    }
-
-    for (let i = 0; i < N; i++) {
-      const a = faceVerts[i][0];
-      const b = faceVerts[i + 1][0];
-      const sa = faceSkirt[i][0];
-      const sb = faceSkirt[i + 1][0];
-      indices.push(a, sa, b, b, sa, sb);
-      const c = faceVerts[i][N];
-      const d = faceVerts[i + 1][N];
-      const sc = faceSkirt[i][N];
-      const sd = faceSkirt[i + 1][N];
-      indices.push(c, sc, d, d, sc, sd);
-    }
-    for (let j = 0; j < N; j++) {
-      const a = faceVerts[0][j];
-      const b = faceVerts[0][j + 1];
-      const sa = faceSkirt[0][j];
-      const sb = faceSkirt[0][j + 1];
-      indices.push(a, sa, b, b, sa, sb);
-      const c = faceVerts[N][j];
-      const d = faceVerts[N][j + 1];
-      const sc = faceSkirt[N][j];
-      const sd = faceSkirt[N][j + 1];
-      indices.push(c, sc, d, d, sc, sd);
-    }
-  }
-
-  return {
-    positions: new Float32Array(positions),
-    normals: new Float32Array(normals),
-    indices: new Uint32Array(indices),
-    vertexCount,
-  };
-}
-
-function buildProceduralGlobeBuffers(N: number) {
-  return buildTerrainMesh(
-    Array.from({ length: 6 }, () => null),
-    N,
-  );
-}
-
-async function buildGlobeBuffers(N: number): Promise<{
-  positions: Float32Array;
-  normals: Float32Array;
-  indices: Uint32Array;
-  vertexCount: number;
-}> {
-  const tilePromises = Array.from({ length: 6 }, (_, f) => {
-    const bounds = faceLatLonBounds(f);
-    return fetchTerrainTile(
-      bounds.minLat,
-      bounds.maxLat,
-      bounds.minLon,
-      bounds.maxLon,
-      N,
-      f,
-    );
-  });
-  const tiles = await Promise.all(tilePromises);
-  return buildTerrainMesh(tiles, N);
-}
-
-function latLonFromDir(dir: Vec3): { lat: number; lon: number } {
-  const n = Math.hypot(dir[0], dir[1], dir[2]) || 1;
-  const x = dir[0] / n,
-    y = dir[1] / n,
-    z = dir[2] / n;
-  const lat = Math.asin(Math.max(-1, Math.min(1, z))) / DEG;
-  const lon = Math.atan2(y, x) / DEG;
-  return { lat, lon };
-}
-
-// --- Camera ---
-const CAM_DIST = 2.7;
-const CAM_DIST_MIN = 1.3;
-const CAM_DIST_MAX = 8.0;
-let camDist = CAM_DIST;
-const CAM_FOV = (50 * Math.PI) / 180;
-const CAM_NEAR = 0.1;
-const CAM_FAR = 100.0;
+watch(
+  () => props.terrainEnriched,
+  (val) => {
+    if (val && firstRideId.value) terrain.reload();
+  },
+);
 
 function normalize3(v: Vec3): Vec3 {
   const n = Math.hypot(v[0], v[1], v[2]) || 1;
@@ -733,7 +541,7 @@ function cross3(a: Vec3, b: Vec3): Vec3 {
   return [
     a[1] * b[2] - a[2] * b[1],
     a[2] * b[0] - a[0] * b[2],
-    a[0] * b[1] - a[1] * b[0],
+    a[0] * b[1] - a[1] * b[2],
   ];
 }
 function dot3(a: Vec3, b: Vec3): number {
@@ -797,7 +605,6 @@ function mat4LookAt(eye: Vec3, center: Vec3, up: Vec3): Float32Array {
   ]);
 }
 
-// --- Globe mesh generation (cube-sphere with skirts) ---
 function faceDir(f: number, u: number, v: number): Vec3 {
   let d: Vec3;
   if (f === 0) d = [1, u, v];
@@ -856,7 +663,7 @@ function draw(
   gl.drawArrays(buf.mode, 0, buf.count);
 }
 
-function drawIndexed(idxBuf: WebGLBuffer, count: number, mode = gl!.TRIANGLES) {
+function drawIndexed(idxBuf: WebGLBuffer, count: number, mode: number) {
   if (!gl) return;
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuf);
   gl.drawElements(mode, count, gl.UNSIGNED_INT, 0);
@@ -919,8 +726,6 @@ function updateSceneBuffers(sc: AetherScene) {
       for (let i = 0; i + 1 < pts.length; i++) {
         const segColor = ent.colors && ent.colors[i] ? ent.colors[i] : ent.char;
         const col = hexToRgb(segColor);
-        const _elev =
-          pts[i + 1] && pts[i + 1][2] !== undefined ? pts[i + 1][2] || 0 : 0;
         const h0 =
           (ent.pts[i] && ent.pts[i].length >= 3 ? ent.pts[i][2] || 0 : 0) *
           TERRAIN_SCALE;
@@ -1066,6 +871,53 @@ async function updateGeoBuffers() {
             ),
           );
           pointData.push(d[0] * r, d[1] * r, d[2] * r, ...col);
+        } else if (geom.type === "Polygon" || geom.type === "MultiPolygon") {
+          const rings: number[][][] = [];
+          if (geom.type === "Polygon") {
+            const ringsRaw = coords as number[][][];
+            for (const ring of ringsRaw) {
+              if (Array.isArray(ring) && ring.length) rings.push(ring);
+            }
+          } else {
+            const polysRaw = coords as number[][][][];
+            for (const poly of polysRaw) {
+              if (Array.isArray(poly) && poly.length)
+                rings.push(poly[0] as number[][]);
+            }
+          }
+          const col: Vec3 = normalizeGeoColor(
+            feature.properties?.color,
+            [0.18, 0.45, 0.18],
+          );
+          for (const ring of rings) {
+            const pts: Vec3[] = [];
+            for (const c of ring) {
+              if (!Array.isArray(c) || c.length < 2) continue;
+              const d = geodeticToDirection(c[1], c[0]);
+              const h = ((c[2] || 0) * TERRAIN_SCALE) + 0.002;
+              const r = GLOBE_RADIUS + h;
+              pts.push([d[0] * r, d[1] * r, d[2] * r]);
+            }
+            for (let j = 0; j + 1 < pts.length; j++) {
+              pushArc(lineData, pts[j], pts[j + 1], col);
+            }
+            if (pts.length >= 3) {
+              for (let j = 1; j + 1 < pts.length; j++) {
+                const a = pts[0];
+                const b = pts[j];
+                const c = pts[j + 1];
+                const fillCol: Vec3 = [
+                  col[0] * 0.85,
+                  col[1] * 0.85,
+                  col[2] * 0.85,
+                ];
+                const cxv = (a[0] + b[0] + c[0]) / 3;
+                const cyv = (a[1] + b[1] + c[1]) / 3;
+                const czv = (a[2] + b[2] + c[2]) / 3;
+                pointData.push(cxv, cyv, czv, fillCol[0], fillCol[1], fillCol[2]);
+              }
+            }
+          }
         }
       }
       if (i + BATCH < features.length) {
@@ -1088,8 +940,398 @@ async function updateGeoBuffers() {
   }
 }
 
-let currentLOD = -1;
-let globePending = false;
+async function fetchTerrainTile(
+  minLat: number,
+  maxLat: number,
+  minLon: number,
+  maxLon: number,
+  resolution: number,
+  face: number = -1,
+): Promise<Float32Array | null> {
+  const source = props.demSource || "auto";
+  const key = `${face}_${source}_${minLat.toFixed(1)}_${maxLat.toFixed(1)}_${minLon.toFixed(1)}_${maxLon.toFixed(1)}_${resolution}`;
+  const cached = terrainTileCache.get(key);
+  if (cached && Date.now() - cached.ts < TILE_CACHE_TTL) {
+    return cached.h;
+  }
+  try {
+    const data = await apiGet<{ heights: number[] }>(
+      "/api/v1/aethermap/terrain",
+      {
+        min_lat: String(minLat),
+        max_lat: String(maxLat),
+        min_lon: String(minLon),
+        max_lon: String(maxLon),
+        resolution: String(resolution),
+        source: source,
+      },
+      { timeoutMs: 1500 },
+    );
+    const heights = new Float32Array(data.heights);
+    terrainTileCache.set(key, { h: heights, ts: Date.now() });
+    return heights;
+  } catch {
+    return null;
+  }
+}
+
+function sampleTerrainTile(
+  tileHeights: Float32Array,
+  resolution: number,
+  u: number,
+  v: number,
+): number {
+  const x = u * (resolution - 1);
+  const y = v * (resolution - 1);
+  const x0 = Math.floor(x);
+  const y0 = Math.floor(y);
+  const x1 = Math.min(x0 + 1, resolution - 1);
+  const y1 = Math.min(y0 + 1, resolution - 1);
+  const fx = x - x0;
+  const fy = y - y0;
+  const h00 = tileHeights[y0 * resolution + x0] || 0;
+  const h10 = tileHeights[y0 * resolution + x1] || 0;
+  const h01 = tileHeights[y1 * resolution + x0] || 0;
+  const h11 = tileHeights[y1 * resolution + x1] || 0;
+  const h0 = h00 + (h10 - h00) * fx;
+  const h1 = h01 + (h11 - h01) * fx;
+  return h0 + (h1 - h0) * fy;
+}
+
+function faceLatLonBounds(face: number): {
+  minLat: number;
+  maxLat: number;
+  minLon: number;
+  maxLon: number;
+} {
+  const corners = [
+    faceDir(face, -1, -1),
+    faceDir(face, 1, -1),
+    faceDir(face, -1, 1),
+    faceDir(face, 1, 1),
+  ];
+  let minLat = Infinity,
+    maxLat = -Infinity;
+  const lons: number[] = [];
+  for (const c of corners) {
+    const { lat, lon } = latLonFromDir(c);
+    minLat = Math.min(minLat, lat);
+    maxLat = Math.max(maxLat, lat);
+    lons.push(lon);
+  }
+
+  if (maxLat - minLat < 1e-3) {
+    return {
+      minLat: face === 5 ? -90 : minLat,
+      maxLat: face === 4 ? 90 : maxLat,
+      minLon: -180,
+      maxLon: 180,
+    };
+  }
+
+  const unwrapped = [lons[0]];
+  for (let i = 1; i < lons.length; i++) {
+    let diff = lons[i] - unwrapped[i - 1];
+    if (diff > 180) unwrapped.push(lons[i] - 360);
+    else if (diff < -180) unwrapped.push(lons[i] + 360);
+    else unwrapped.push(lons[i]);
+  }
+  let minLon = Math.min(...unwrapped);
+  let maxLon = Math.max(...unwrapped);
+  if (minLon < -180) {
+    minLon += 360;
+    maxLon += 360;
+  } else if (maxLon > 180) {
+    minLon -= 360;
+    maxLon -= 360;
+  }
+  return { minLat, maxLat, minLon, maxLon };
+}
+
+function latLonFromDir(dir: Vec3): { lat: number; lon: number } {
+  const n = Math.hypot(dir[0], dir[1], dir[2]) || 1;
+  const x = dir[0] / n,
+    y = dir[1] / n,
+    z = dir[2] / n;
+  const lat = Math.asin(Math.max(-1, Math.min(1, z))) / DEG;
+  const lon = Math.atan2(y, x) / DEG;
+  return { lat, lon };
+}
+
+function buildTerrainMesh(
+  tiles: (Float32Array | null)[],
+  N: number,
+): {
+  positions: Float32Array;
+  normals: Float32Array;
+  indices: Uint32Array;
+  vertexCount: number;
+} {
+  const verts: Vec3[][][] = [];
+  const skirtVerts: Vec3[][][] = [];
+
+  for (let f = 0; f < 6; f++) {
+    verts[f] = [];
+    skirtVerts[f] = [];
+    const bounds = faceLatLonBounds(f);
+    const tile = tiles[f];
+    for (let i = 0; i <= N; i++) {
+      verts[f][i] = [];
+      skirtVerts[f][i] = [];
+      for (let j = 0; j <= N; j++) {
+        const u = (i / N) * 2 - 1;
+        const v = (j / N) * 2 - 1;
+        const dir = faceDir(f, u, v);
+        const { lat, lon } = latLonFromDir(dir);
+        let terrainH = 0;
+        if (tile) {
+          let wrappedLon = lon;
+          const span = bounds.maxLon - bounds.minLon;
+          while (wrappedLon < bounds.minLon) wrappedLon += 360;
+          while (wrappedLon > bounds.minLon + span) wrappedLon -= 360;
+          const tileU = (wrappedLon - bounds.minLon) / span;
+          const tileV =
+            1.0 - (lat - bounds.minLat) / (bounds.maxLat - bounds.minLat);
+          const clampedU = Math.max(0, Math.min(1, tileU));
+          const clampedV = Math.max(0, Math.min(1, tileV));
+          terrainH = sampleTerrainTile(tile, N, clampedU, clampedV);
+        }
+        const scaledH = terrainH * TERRAIN_SCALE;
+        const r = GLOBE_RADIUS + scaledH;
+        const pos: Vec3 = [dir[0] * r, dir[1] * r, dir[2] * r];
+        verts[f][i][j] = pos;
+
+        if (i === 0 || i === N || j === 0 || j === N) {
+          const sk: Vec3 = [
+            dir[0] * (r + SKIRT_HEIGHT),
+            dir[1] * (r + SKIRT_HEIGHT),
+            dir[2] * (r + SKIRT_HEIGHT),
+          ];
+          skirtVerts[f][i][j] = sk;
+        } else {
+          skirtVerts[f][i][j] = pos;
+        }
+      }
+    }
+  }
+
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const indices: number[] = [];
+  let vertexCount = 0;
+
+  function addVertex(pos: Vec3, norm: Vec3) {
+    positions.push(pos[0], pos[1], pos[2]);
+    normals.push(norm[0], norm[1], norm[2]);
+    return vertexCount++;
+  }
+
+  for (let f = 0; f < 6; f++) {
+    const faceVerts: number[][] = [];
+    const faceSkirt: number[][] = [];
+
+    for (let i = 0; i <= N; i++) {
+      faceVerts[i] = [];
+      faceSkirt[i] = [];
+      for (let j = 0; j <= N; j++) {
+        const pos = verts[f][i][j];
+        const sk = skirtVerts[f][i][j];
+        faceVerts[i][j] = addVertex(pos, normalize3(pos));
+        faceSkirt[i][j] = addVertex(sk, normalize3(pos));
+      }
+    }
+
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < N; j++) {
+        const a = faceVerts[i][j];
+        const b = faceVerts[i + 1][j];
+        const c = faceVerts[i][j + 1];
+        const d = faceVerts[i + 1][j + 1];
+        indices.push(a, b, c, b, d, c);
+      }
+    }
+
+    for (let i = 0; i < N; i++) {
+      const a = faceVerts[i][0];
+      const b = faceVerts[i + 1][0];
+      const sa = faceSkirt[i][0];
+      const sb = faceSkirt[i + 1][0];
+      indices.push(a, sa, b, b, sa, sb);
+      const c = faceVerts[i][N];
+      const d = faceVerts[i + 1][N];
+      const sc = faceSkirt[i][N];
+      const sd = faceSkirt[i + 1][N];
+      indices.push(c, sc, d, d, sc, sd);
+    }
+    for (let j = 0; j < N; j++) {
+      const a = faceVerts[0][j];
+      const b = faceVerts[0][j + 1];
+      const sa = faceSkirt[0][j];
+      const sb = faceSkirt[0][j + 1];
+      indices.push(a, sa, b, b, sa, sb);
+      const c = faceVerts[N][j];
+      const d = faceVerts[N][j + 1];
+      const sc = faceSkirt[N][j];
+      const sd = faceSkirt[N][j + 1];
+      indices.push(c, sc, d, d, sc, sd);
+    }
+  }
+
+  return {
+    positions: new Float32Array(positions),
+    normals: new Float32Array(normals),
+    indices: new Uint32Array(indices),
+    vertexCount,
+  };
+}
+
+function buildProceduralGlobeBuffers(N: number) {
+  return buildTerrainMesh(
+    Array.from({ length: 6 }, () => null),
+    N,
+  );
+}
+
+async function buildGlobeBuffers(N: number): Promise<{
+  positions: Float32Array;
+  normals: Float32Array;
+  indices: Uint32Array;
+  vertexCount: number;
+}> {
+  const tilePromises = Array.from({ length: 6 }, (_, f) => {
+    const bounds = faceLatLonBounds(f);
+    return fetchTerrainTile(
+      bounds.minLat,
+      bounds.maxLat,
+      bounds.minLon,
+      bounds.maxLon,
+      N,
+      f,
+    );
+  });
+  const tiles = await Promise.all(tilePromises);
+  return buildTerrainMesh(tiles, N);
+}
+
+const isMobileDevice = (): boolean => {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(
+    navigator.userAgent,
+  );
+};
+
+const MOBILE_LOD_OFFSET = isMobileDevice() ? 2 : 0;
+
+function getLODResolution(camDist: number): number {
+  let res = 0;
+  if (camDist < 2.0) res = 48;
+  else if (camDist < 3.5) res = 32;
+  else if (camDist < 5.0) res = 20;
+  else if (camDist < 6.5) res = 12;
+  else res = 8;
+  return Math.max(8, res - MOBILE_LOD_OFFSET);
+}
+
+const VS = `#version 300 es
+in vec3 aPosition;
+in vec3 aNormal;
+in vec3 aColor;
+uniform mat4 uProj;
+uniform mat4 uView;
+uniform vec3 uEyePos;
+uniform float uPointSize;
+uniform bool uUseVertexColor;
+out vec3 vNormal;
+out vec3 vViewPos;
+out vec2 vLatLon;
+out float vElevation;
+out vec3 vColor;
+void main() {
+  vec4 viewPos = uView * vec4(aPosition, 1.0);
+  gl_Position = uProj * viewPos;
+  gl_PointSize = uPointSize;
+  vNormal = aNormal;
+  vViewPos = viewPos.xyz;
+  vec3 n = normalize(aPosition);
+  vLatLon = vec2(degrees(asin(clamp(n.z, -1.0, 1.0))), degrees(atan(n.y, n.x)));
+  vElevation = clamp((length(aPosition) - 1.0) * 1600.0, 0.0, 1.0);
+  vColor = aColor;
+}`;
+
+const FS = `#version 300 es
+precision mediump float;
+in vec3 vNormal;
+in vec3 vViewPos;
+in vec2 vLatLon;
+in float vElevation;
+in vec3 vColor;
+uniform vec3 uSunDir;
+uniform vec3 uEyePos;
+uniform bool uUseVertexColor;
+uniform sampler2D uEarthTexture;
+uniform bool uUseEarthTexture;
+out vec4 outColor;
+void main() {
+  vec3 baseColor;
+  if (uUseEarthTexture) {
+    float u = (vLatLon.y + 180.0) / 360.0;
+    float v = (90.0 - vLatLon.x) / 180.0;
+    baseColor = texture(uEarthTexture, vec2(u, v)).rgb;
+  } else {
+    baseColor = vColor;
+  }
+  vec3 n = normalize(vNormal);
+  vec3 sun = normalize(uSunDir);
+  float d = max(dot(n, sun), 0.0);
+  float ambient = 0.25;
+  vec3 lit = baseColor * (ambient + d * 0.75);
+  vec3 viewDir = normalize(-vViewPos);
+  float rim = 1.0 - max(dot(viewDir, n), 0.0);
+  rim = pow(rim, 3.5);
+  lit += vec3(0.2, 0.4, 0.8) * rim * 0.25;
+  outColor = vec4(lit, 1.0);
+}`;
+
+async function loadEarthTexture(glCtx: WebGL2RenderingContext) {
+  try {
+    const resp = await fetch("/api/v1/aethermap/earth-texture.png", {
+      headers: { Accept: "image/png" },
+    });
+    if (!resp.ok) return;
+    const blob = await resp.blob();
+    const bitmap = await createImageBitmap(blob);
+    if (earthTexture) glCtx.deleteTexture(earthTexture);
+    earthTexture = glCtx.createTexture();
+    glCtx.bindTexture(glCtx.TEXTURE_2D, earthTexture);
+    glCtx.texParameteri(glCtx.TEXTURE_2D, glCtx.TEXTURE_WRAP_S, glCtx.REPEAT);
+    glCtx.texParameteri(
+      glCtx.TEXTURE_2D,
+      glCtx.TEXTURE_WRAP_T,
+      glCtx.CLAMP_TO_EDGE,
+    );
+    glCtx.texParameteri(
+      glCtx.TEXTURE_2D,
+      glCtx.TEXTURE_MIN_FILTER,
+      glCtx.LINEAR,
+    );
+    glCtx.texParameteri(
+      glCtx.TEXTURE_2D,
+      glCtx.TEXTURE_MAG_FILTER,
+      glCtx.LINEAR,
+    );
+    glCtx.texImage2D(
+      glCtx.TEXTURE_2D,
+      0,
+      glCtx.RGBA,
+      glCtx.RGBA,
+      glCtx.UNSIGNED_BYTE,
+      bitmap,
+    );
+    useEarthTexture = true;
+  } catch {
+    useEarthTexture = false;
+  }
+}
 
 onMounted(async () => {
   const canvas = canvasRef.value;
@@ -1107,149 +1349,8 @@ onMounted(async () => {
   gl.enable(gl.DEPTH_TEST);
   gl.enable(gl.CULL_FACE);
   gl.cullFace(gl.BACK);
-
-  const VS = `#version 300 es
-  in vec3 aPosition;
-  in vec3 aNormal;
-  in vec3 aColor;
-  uniform mat4 uProj;
-  uniform mat4 uView;
-  uniform vec3 uEyePos;
-  uniform float uPointSize;
-  uniform bool uUseVertexColor;
-  out vec3 vNormal;
-  out vec3 vViewPos;
-  out vec2 vLatLon;
-  out float vElevation;
-  out vec3 vColor;
-  void main() {
-    vec4 viewPos = uView * vec4(aPosition, 1.0);
-    gl_Position = uProj * viewPos;
-    gl_PointSize = uPointSize;
-    vNormal = aNormal;
-    vViewPos = viewPos.xyz;
-    vec3 n = normalize(aPosition);
-    vLatLon = vec2(degrees(asin(clamp(n.z, -1.0, 1.0))), degrees(atan(n.y, n.x)));
-    vElevation = clamp((length(aPosition) - 1.0) * 1600.0, 0.0, 1.0);
-    vColor = aColor;
-  }`;
-
-  const FS = `#version 300 es
-  precision mediump float;
-  in vec3 vNormal;
-  in vec3 vViewPos;
-  in vec2 vLatLon;
-  in float vElevation;
-  in vec3 vColor;
-  uniform vec3 uSunDir;
-  uniform vec3 uEyePos;
-  uniform bool uUseVertexColor;
-  uniform sampler2D uEarthTexture;
-  uniform bool uUseEarthTexture;
-  out vec4 outColor;
-
-  float hash2(vec2 p) {
-    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-  }
-  float noise2(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-    f = f * f * (3.0 - 2.0 * f);
-    float a = hash2(i);
-    float b = hash2(i + vec2(1.0, 0.0));
-    float c = hash2(i + vec2(0.0, 1.0));
-    float d = hash2(i + vec2(1.0, 1.0));
-    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-  }
-  float fbm2(vec2 p) {
-    float v = 0.0;
-    float a = 0.5;
-    for (int i = 0; i < 5; i++) {
-      v += a * noise2(p);
-      p *= 2.0;
-      a *= 0.5;
-    }
-    return v;
-  }
-
-  float smoothEllipse(float lat, float lon, float clat, float clon, float rlat, float rlon) {
-    float dlat = (lat - clat) / rlat;
-    float dlon = (lon - clon) / rlon;
-    float d = dlat * dlat + dlon * dlon;
-    return 1.0 - smoothstep(0.7, 1.0, d);
-  }
-
-  float continentMask(float lat, float lon) {
-    float m = 0.0;
-    m = max(m, smoothEllipse(lat, lon, 45.0, -100.0, 22.0, 28.0));
-    m = max(m, smoothEllipse(lat, lon, 30.0, -90.0, 10.0, 15.0) * 0.8);
-    m = max(m, smoothEllipse(lat, lon, -15.0, -55.0, 12.0, 18.0) * 0.9);
-    m = max(m, smoothEllipse(lat, lon, 50.0, 10.0, 12.0, 18.0) * 0.85);
-    m = max(m, smoothEllipse(lat, lon, 5.0, 20.0, 22.0, 22.0) * 0.9);
-    m = max(m, smoothEllipse(lat, lon, 40.0, 80.0, 25.0, 40.0) * 0.85);
-    m = max(m, smoothEllipse(lat, lon, 55.0, 100.0, 12.0, 20.0) * 0.7);
-    m = max(m, smoothEllipse(lat, lon, -25.0, 135.0, 10.0, 14.0) * 0.8);
-    m = max(m, smoothstep(0.85, 1.0, abs(lat) / 90.0));
-    float detail = fbm2(vec2(lon * 8.0, lat * 8.0) + 0.5);
-    m = smoothstep(0.45, 0.65, m + detail * 0.2);
-    return m;
-  }
-
-  vec3 satelliteColor(vec2 latLon, float elevation) {
-    float lat = latLon.x;
-    float lon = latLon.y;
-
-    float continent = continentMask(lat, lon);
-    float polar = smoothstep(0.85, 1.0, abs(lat) / 90.0);
-
-    vec3 oceanDeep = vec3(0.02, 0.08, 0.22);
-    vec3 oceanShallow = vec3(0.04, 0.18, 0.38);
-    vec3 ocean = mix(oceanDeep, oceanShallow, smoothstep(-0.02, 0.02, elevation));
-
-    vec3 lowland = vec3(0.12, 0.35, 0.12);
-    vec3 forest = vec3(0.06, 0.22, 0.06);
-    vec3 desert = vec3(0.76, 0.68, 0.45);
-    vec3 mountain = vec3(0.45, 0.38, 0.28);
-    vec3 snow = vec3(0.92, 0.94, 0.98);
-
-    float latFactor = smoothstep(-0.5, 0.5, abs(lat) / 90.0);
-    float desertMask = (1.0 - latFactor) * step(0.55, fbm2(vec2(lon * 5.0 + 10.0, lat * 5.0) + 0.3));
-    float forestMask = latFactor * step(0.45, fbm2(vec2(lon * 4.0, lat * 4.0) + 0.7));
-
-    vec3 land = mix(lowland, desert, desertMask);
-    land = mix(land, forest, forestMask * 0.6);
-    land = mix(land, mountain, smoothstep(0.15, 0.35, elevation));
-    land = mix(land, snow, smoothstep(0.3, 0.5, elevation));
-    land = mix(land, snow, polar);
-
-    vec3 color = mix(ocean, land, continent);
-    return color;
-  }
-
-  void main() {
-    vec3 baseColor;
-    if (uUseEarthTexture) {
-      float u = (vLatLon.y + 180.0) / 360.0;
-      float v = (90.0 - vLatLon.x) / 180.0;
-      baseColor = texture(uEarthTexture, vec2(u, v)).rgb;
-    } else {
-      baseColor = satelliteColor(vLatLon, vElevation);
-    }
-
-    vec3 n = normalize(vNormal);
-    vec3 sun = normalize(uSunDir);
-    float diff = max(dot(n, sun), 0.0);
-    float ambient = 0.15;
-
-    vec3 lit = baseColor * (ambient + diff * 0.85);
-
-    vec3 viewDir = normalize(-vViewPos);
-    float rim = 1.0 - max(dot(viewDir, n), 0.0);
-    rim = pow(rim, 3.5);
-    lit += vec3(0.2, 0.4, 0.8) * rim * 0.3;
-
-    outColor = vec4(lit, 1.0);
-  }`;
+  gl.enable(gl.POLYGON_OFFSET_FILL);
+  gl.polygonOffset(1.0, 1.0);
 
   function compile(type: number, src: string): WebGLShader {
     const s = gl!.createShader(type)!;
@@ -1284,37 +1385,7 @@ onMounted(async () => {
   const A_n = gl!.getAttribLocation(prog, "aNormal");
   const A_c = gl!.getAttribLocation(prog, "aColor");
 
-  async function loadEarthTexture() {
-    if (!gl) return;
-    try {
-      const resp = await fetch("/api/v1/aethermap/earth-texture.png", {
-        headers: { Accept: "image/png" },
-      });
-      if (!resp.ok) return;
-      const blob = await resp.blob();
-      const bitmap = await createImageBitmap(blob);
-      if (earthTexture) gl.deleteTexture(earthTexture);
-      earthTexture = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, earthTexture);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGBA,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        bitmap,
-      );
-      useEarthTexture = true;
-    } catch {
-      useEarthTexture = false;
-    }
-  }
-
-  loadEarthTexture();
+  loadEarthTexture(gl);
 
   const globeData = buildProceduralGlobeBuffers(getLODResolution(camDist));
   currentLOD = getLODResolution(camDist);
@@ -1431,6 +1502,7 @@ onMounted(async () => {
   });
 
   const sunDir = normalize3([0.6, 0.8, 0.4]);
+  void sunDir;
 
   let lastTime = performance.now();
   let frameCount = 0;
@@ -1484,6 +1556,33 @@ onMounted(async () => {
       if (Math.abs(vpitch) < 1e-4) vpitch = 0;
     }
 
+    if (props.cameraMode === "topDown") {
+      pitch = 1.45;
+    } else if (props.cameraMode === "follow" && activeRoutePoints.value.length) {
+      followIndex = (followIndex + 0.3) % activeRoutePoints.value.length;
+      const pt = activeRoutePoints.value[Math.floor(followIndex)];
+      if (pt) {
+        targetYaw = (pt.lon * Math.PI) / 180 + Math.PI / 2;
+        targetPitch = Math.max(-1.4, Math.min(1.4, (pt.lat * Math.PI) / 180));
+        targetCamDist = 1.6;
+        animatingCamera = true;
+        updateRiderMarkerBuffer(pt);
+      }
+    }
+
+    if (animatingCamera) {
+      yaw += (targetYaw - yaw) * 0.08;
+      pitch += (targetPitch - pitch) * 0.08;
+      camDist += (targetCamDist - camDist) * 0.08;
+      if (
+        Math.abs(targetYaw - yaw) < 1e-4 &&
+        Math.abs(targetPitch - pitch) < 1e-4 &&
+        Math.abs(targetCamDist - camDist) < 1e-4
+      ) {
+        animatingCamera = false;
+      }
+    }
+
     const aspect = canvasEl.width / Math.max(canvasEl.height, 1);
     const eye = camEye(yaw, pitch);
 
@@ -1506,9 +1605,17 @@ onMounted(async () => {
       cachedView.set(mat4LookAt(eye, [0, 0, 0], [0, 1, 0]));
     }
 
+    const sHour = props.sunHour ?? 12;
+    const sunAngle = ((sHour - 6) / 24) * Math.PI * 2;
+    const currentSunDir = normalize3([
+      Math.cos(sunAngle),
+      0.7,
+      Math.sin(sunAngle),
+    ]);
+
     gl.uniformMatrix4fv(U.proj, false, cachedProj);
     gl.uniformMatrix4fv(U.view, false, cachedView);
-    gl.uniform3fv(U.sunDir, sunDir);
+    gl.uniform3fv(U.sunDir, currentSunDir);
     gl.uniform3fv(U.eyePos, eye);
     gl.uniform1f(U.pointSize, 6.0);
 
@@ -1518,6 +1625,7 @@ onMounted(async () => {
     gl.uniform1i(U.useEarthTexture, useEarthTexture ? 1 : 0);
 
     if (globePosBuf && globeNormBuf && globeIdxBuf) {
+      gl.disable(gl.POLYGON_OFFSET_FILL);
       gl.uniform1i(U.useVertexColor, 0);
       gl.bindBuffer(gl.ARRAY_BUFFER, globePosBuf.buf);
       gl.enableVertexAttribArray(A_p);
@@ -1527,7 +1635,9 @@ onMounted(async () => {
       gl.vertexAttribPointer(A_n, 3, gl.FLOAT, false, 0, 0);
       gl.disableVertexAttribArray(A_c);
       gl.vertexAttrib3f(A_c, 1.0, 1.0, 1.0);
-      drawIndexed(globeIdxBuf, globeIdxCount);
+      const drawMode = props.wireframe ? gl.LINES : gl.TRIANGLES;
+      drawIndexed(globeIdxBuf, globeIdxCount, drawMode);
+      gl.enable(gl.POLYGON_OFFSET_FILL);
     }
 
     gl.uniform1i(U.useVertexColor, 1);
@@ -1535,6 +1645,11 @@ onMounted(async () => {
     if (pointBuffer) draw(pointBuffer, A_p, A_c);
     if (markerBuffer) draw(markerBuffer, A_p, A_c);
     if (terrainBuffer) draw(terrainBuffer, A_p, A_c);
+    if (riderMarkerBuffer) {
+      gl.uniform1f(U.pointSize, 12.0);
+      draw(riderMarkerBuffer, A_p, A_c);
+      gl.uniform1f(U.pointSize, 6.0);
+    }
 
     for (const [, buf] of geoBufferMap) {
       draw(buf, A_p, A_c);
@@ -1645,7 +1760,6 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect();
 });
 </script>
-
 <style scoped>
 .aethermap-viewer {
   position: relative;
@@ -1717,5 +1831,32 @@ onBeforeUnmount(() => {
 .aethermap-layer-count {
   color: #aaa;
   font-size: 10px;
+}
+.aethermap-profile-overlay {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(127, 255, 221, 0.2);
+  pointer-events: auto;
+}
+.aethermap-profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #00f3ff;
+  margin-bottom: 4px;
+}
+.aethermap-profile-meta {
+  color: #fff;
+  font-weight: 600;
+}
+.aethermap-profile-svg {
+  width: 100%;
+  height: 36px;
+  background: rgba(0, 243, 255, 0.05);
+  border: 1px solid rgba(0, 243, 255, 0.2);
+  border-radius: 4px;
+  cursor: crosshair;
+  display: block;
 }
 </style>

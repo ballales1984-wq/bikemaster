@@ -45,6 +45,38 @@ def _load_natural_earth_land(cache_dir: Path, resolution: str = "110") -> list |
         return None
 
 
+def ensure_natural_earth_cached(
+    cache_dir: Path, resolution: str = "110"
+) -> bool:
+    """Best-effort download of Natural Earth land polygons if not cached.
+
+    Returns True when a real polygon file is available (cached or just downloaded).
+    Returns False if download fails (caller will fall back to procedural mask).
+    """
+    import urllib.request
+    from urllib.error import URLError, HTTPError
+
+    cache_file = cache_dir / f"natural-earth-{resolution}.geojson"
+    if cache_file.exists() and cache_file.stat().st_size > 1024:
+        return True
+    try:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        url = (
+            "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/"
+            f"ne_{resolution}m_land.geojson"
+        )
+        with urllib.request.urlopen(url, timeout=20) as resp:
+            data = resp.read()
+        cache_file.write_bytes(data)
+        return len(data) > 1024
+    except (URLError, HTTPError, TimeoutError, OSError) as exc:
+        logger.warning(
+            "ensure_natural_earth_cached: download failed (%s); using procedural mask",
+            exc,
+        )
+        return False
+
+
 def _generate_procedural_mask(width: int, height: int) -> np.ndarray:
     """Generate a procedural land mask as fallback."""
     lats = np.linspace(90, -90, height).reshape(-1, 1).repeat(width, axis=1)
@@ -139,6 +171,9 @@ def generate_earth_texture(
         cache_dir.mkdir(parents=True, exist_ok=True)
 
         land_polygons = _load_natural_earth_land(cache_dir)
+        if not land_polygons:
+            ensure_natural_earth_cached(cache_dir)
+            land_polygons = _load_natural_earth_land(cache_dir)
         
         ocean_deep = np.array([8, 18, 45], dtype=np.uint8)
         ocean_shallow = np.array([15, 40, 80], dtype=np.uint8)
