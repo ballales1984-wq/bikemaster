@@ -75,7 +75,9 @@ services:
 
   - type: postgresql
     name: bikemaster-db
-    plan: starter
+    plan: basic_256mb
+    version: 18
+    region: frankfurt
 
   - type: redis
     name: bikemaster-redis
