@@ -26,10 +26,6 @@ _NE_BASE_URL = (
 _NE_CACHE_DIR = Path(__file__).resolve().parent / "natural_earth"
 _NE_CACHE_DIR.mkdir(exist_ok=True)
 
-_COASTLINE_FILE = "ne_10m_coastline.geojson"
-_BORDERS_FILE = "ne_10m_admin_0_boundary_lines_land.geojson"
-_CITIES_FILE = "ne_10m_populated_places_simple.geojson"
-
 _GPD_AVAILABLE = False
 try:
     import geopandas as gpd  # type: ignore[import-untyped]
