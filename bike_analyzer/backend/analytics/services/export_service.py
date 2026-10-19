@@ -1,4 +1,9 @@
-"""Export service - data aggregation for GDPR-style user data export."""
+"""Export service - data aggregation for GDPR-style user data export.
+
+Collects all personal data for a user/athlete across all domains
+(rides, metrics, calendar, fitness, nutrition, legal, audit) into a
+single JSON-compatible dict for download.
+"""
 
 from __future__ import annotations
 
@@ -20,8 +25,26 @@ from ...db.database import (
 
 
 class ExportService:
+    """Service for exporting all user data (GDPR data portability)."""
+
     @staticmethod
     def export_all_my_data(user_id: str, tenant_id: int) -> dict:
+        """Aggregate all athlete data into a single export dict.
+
+        Queries every data domain (rides, metrics, calendar, fitness,
+        nutrition, legal, audit) and returns a JSON-serializable dict
+        with an ``exported_at`` timestamp.
+
+        Args:
+            user_id: User/athlete identifier string.
+            tenant_id: Tenant id for multi-tenant isolation.
+
+        Returns:
+            Dict with keys: ``user``, ``athlete``, ``rides``, ``metrics``,
+            ``calendar_events``, ``fitness_states``, ``training_stress_days``,
+            ``food_logs``, ``beck_assessments``, ``legal_acceptances``,
+            ``consents``, ``ai_audit_logs``, ``exported_at``.
+        """
         athlete_id = int(user_id)
         now = datetime.now(UTC).isoformat()
         return {

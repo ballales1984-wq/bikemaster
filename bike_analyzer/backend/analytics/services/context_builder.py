@@ -1,4 +1,9 @@
-"""Context Builder for AI Coach 2.0 - aggregates athlete context for LLM reasoning."""
+"""Context Builder for AI Coach 2.0 - aggregates athlete context for LLM reasoning.
+
+Builds structured context dictionaries from athlete profile, ride history,
+and fitness state so the AI Coach can generate personalized recommendations
+without querying multiple repositories independently.
+"""
 
 from __future__ import annotations
 
@@ -16,6 +21,12 @@ class ContextBuilder:
     """
 
     def __init__(self, athlete_id: int, session_factory=None):
+        """Initialize with athlete ID and optional async session factory.
+
+        Args:
+            athlete_id: Owner athlete identifier.
+            session_factory: Optional async DB session factory for live data fetch.
+        """
         self.athlete_id = athlete_id
         self._session_factory = session_factory
 
@@ -25,6 +36,16 @@ class ContextBuilder:
         rides: list[dict[str, Any]] | None = None,
         fitness_state: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        """Build context focused on training recommendations.
+
+        Args:
+            athlete: Athlete profile dict (fetched externally or passed in).
+            rides: Recent rides list (last 10 used).
+            fitness_state: Latest fitness state dict.
+
+        Returns:
+            Context dict with athlete, fitness_state, recent_rides, trends, recommendations.
+        """
         context = {
             "athlete": athlete or {},
             "fitness_state": fitness_state or {},
@@ -40,6 +61,19 @@ class ContextBuilder:
         rides: list[dict[str, Any]] | None = None,
         fitness_state: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        """Build context focused on recovery assessment.
+
+        Computes a recovery score (0-10) from TSB: TSB + 5, clamped.
+        Recovery needed when score < 5.
+
+        Args:
+            athlete: Athlete profile dict.
+            rides: Recent rides list (last 5 used).
+            fitness_state: Latest fitness state dict.
+
+        Returns:
+            Context dict with recovery_score, hours_needed, recovery_needed flag.
+        """
         recovery_score = 10.0
         if fitness_state:
             tsb = fitness_state.get("tsb", 0)
@@ -57,6 +91,17 @@ class ContextBuilder:
         return context
 
     def _compute_trends(self, rides: list[dict[str, Any]] | None) -> dict[str, str]:
+        """Compute short-term and long-term performance trends from rides.
+
+        Short-term: compares average performance score of first half vs second half.
+        Long-term: compares last ride's weekly TSS vs monthly TSS/4.
+
+        Args:
+            rides: List of ride dicts with performance_score, weekly_tss, monthly_tss.
+
+        Returns:
+            Dict with ``short_term`` and ``long_term`` (each: improving/stable/declining).
+        """
         if not rides or len(rides) < 2:
             return {"short_term": "stable", "long_term": "stable"}
 
@@ -72,6 +117,14 @@ class ContextBuilder:
         return {"short_term": short_trend, "long_term": long_trend}
 
     def _recommendations_from_state(self, fitness_state: dict[str, Any] | None) -> list[str]:
+        """Generate training recommendations from fitness state thresholds.
+
+        Args:
+            fitness_state: Fitness state dict with tsb, atl, ctl.
+
+        Returns:
+            List of recommendation strings (may be empty).
+        """
         if not fitness_state:
             return []
 
@@ -93,6 +146,14 @@ class ContextBuilder:
         return recs
 
     def _build_explanation(self, fitness_state: dict[str, Any] | None) -> str:
+        """Build a human-readable explanation of the current fitness state.
+
+        Args:
+            fitness_state: Fitness state dict.
+
+        Returns:
+            Pipe-separated explanation string, or "Stable fitness state" if neutral.
+        """
         if not fitness_state:
             return "Nessun dato fitness disponibile"
 
@@ -116,6 +177,17 @@ class ContextBuilder:
         return " | ".join(reasons) if reasons else "Stable fitness state"
 
     async def fetch_full_context(self, include_history: bool = True) -> dict[str, Any]:
+        """Fetch live data from repositories and build a complete training context.
+
+        Queries athlete, rides, and fitness state repositories using the
+        session factory, then delegates to ``build_training_context``.
+
+        Args:
+            include_history: If True, include ride history (currently always fetched).
+
+        Returns:
+            Complete context dict ready for AI Coach consumption.
+        """
         athlete = None
         rides = []
         fitness_state = None

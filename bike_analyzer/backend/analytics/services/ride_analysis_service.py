@@ -19,11 +19,34 @@ if TYPE_CHECKING:
 
 
 class RideAnalysisService:
+    """Service layer for ride analysis - wraps the core pipeline with monitoring.
+
+    Provides both async and sync analysis paths, recording Prometheus
+    metrics for ride analysis duration and fatigue scores.
+    """
+
     def __init__(self, ftp: float = 250.0):
+        """Initialize the service with an optional FTP threshold.
+
+        Args:
+            ftp: Functional Threshold Power in watts, used for TSS calculation.
+        """
         self.pipeline = AnalysisPipeline(ftp=ftp)
         self.fitness_engine = FitnessStateEngine(ftp=ftp)
 
     async def analyze(self, ride: Ride) -> dict:
+        """Run the full analysis pipeline for a single ride asynchronously.
+
+        Processes GPS data, computes route statistics and aggregated metrics
+        (fatigue, recovery, calories, performance, TSS), and records
+        Prometheus metrics for observability.
+
+        Args:
+            ride: Cycling activity to analyze.
+
+        Returns:
+            Dictionary with keys: ``ride``, ``metrics``, ``route_statistics``.
+        """
         from ...monitoring import record_fatigue_score, record_ride_analysis_duration
 
         start = _time.perf_counter()
@@ -51,6 +74,17 @@ class RideAnalysisService:
             record_ride_analysis_duration(_time.perf_counter() - start)
 
     def analyze_sync(self, ride: Ride) -> dict:
+        """Run the full analysis pipeline for a single ride synchronously.
+
+        Same as ``analyze`` but blocks until completion. Useful for
+        CLI tools and background tasks that don't need async.
+
+        Args:
+            ride: Cycling activity to analyze.
+
+        Returns:
+            Dictionary with keys: ``ride``, ``metrics``, ``route_statistics``.
+        """
         from ...monitoring import record_fatigue_score, record_ride_analysis_duration
 
         start = _time.perf_counter()
@@ -78,4 +112,13 @@ class RideAnalysisService:
             record_ride_analysis_duration(_time.perf_counter() - start)
 
     async def compute_fitness_state(self, rides: Sequence[Ride], athlete_id: int) -> FitnessStateVector:
+        """Compute the Fitness State Vector (ATL/CTL/TSB) from a ride history.
+
+        Args:
+            rides: Sequence of historical rides for the athlete.
+            athlete_id: Owner athlete identifier.
+
+        Returns:
+            FitnessStateVector with computed ATL, CTL, TSB, trends and recommendations.
+        """
         return self.fitness_engine.compute(rides, athlete_id)

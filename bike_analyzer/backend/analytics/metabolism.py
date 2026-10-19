@@ -1,7 +1,12 @@
 """Metabolism analytics service.
 
-Calcola profili metabolici, riepiloghi giornalieri e integra
-dati di tracking reali (rides, GPS) nelle stime TDEE.
+Calcola profili metabolici (BMR/TDEE), riepiloghi giornalieri, integrando
+dati reali di rides/GPS per raffinare la stima della spesa energetica
+(EAT/EATNEAT/TEF) tramite pesi adattivi per atleta.
+
+L'orchestrazione vera e' delegata a :mod:`core.calculators.metabolism`;
+questo modulo aggiunge il binding al repository SQLite/Postgres e i fallback
+di configurazione (sex, activity_level) dai profili atleta.
 """
 
 from __future__ import annotations
@@ -23,7 +28,22 @@ logger = get_logger(__name__)
 
 
 def resolve_reference_value(athlete: dict, profile: dict | None, tenant_id: int = 0) -> dict:
-    """Resolve the reference mean (imported if present, else built-in) for the athlete."""
+    """Risolve il valore di riferimento metabolico per l'atleta.
+
+    Cerca prima nella tabella ``metabolic_reference_values`` (importata o
+    seedata) per sesso/eta'/peso/activity_level; se assente, ricade su
+    :func:`reference_for_athlete` che usa formule built-in (Mifflin-St
+    Jeor per BMR, attivita' moltiplicatore per TDEE).
+
+    Args:
+        athlete: Dizionario con campi atleta (``sex``, ``age``, ``weight_kg``,
+            ``height_cm``, ``activity_level``).
+        profile: Profilo metabolico sovrapposto all'atleta, opzionale.
+        tenant_id: Tenant per il dispatch Postgres quando attivo.
+
+    Returns:
+        Dict con ``bmr_kcal``, ``tdee_kcal``, brackets eta/peso, ``source``.
+    """
     sex = (profile or {}).get("sex") or athlete.get("sex", "male")
     activity_level = (profile or {}).get("activity_level") or athlete.get("activity_level", "moderate")
     age = int(athlete.get("age") or 30)
@@ -45,7 +65,13 @@ def resolve_reference_value(athlete: dict, profile: dict | None, tenant_id: int 
 
 
 def get_athlete_weights(athlete_id: int, tenant_id: int = 0) -> AdaptiveWeights:
-    """Return the per-athlete adaptive weights (fresh if none stored)."""
+    """Carica i pesi adattivi per atleta (calibrati sui suoi dati reali).
+
+    Se l'atleta non ha ancora pesi salvati, ritorna un'istanza
+    :class:`AdaptiveWeights` con i default (50/30/20) costruiti dal
+    ``from_dict({})``. I pesi determinano il blending tra BMR formula,
+    reference importata e TDEE calcolato da rides reali.
+    """
     row = MetabolismRepository.get_metabolic_adaptive_weights(athlete_id, tenant_id)
     return AdaptiveWeights.from_dict(row or {})
 
