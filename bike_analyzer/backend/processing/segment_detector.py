@@ -9,7 +9,16 @@ from ..models.models import GPSPoint, Segment, haversine_distance_m
 
 @dataclass
 class ClimbSegment:
-    """Segmento di salita rilevato: indici, distanza, dislivello, categoria."""
+    """Segmento di salita rilevato su una traccia GPS.
+
+    Attributes:
+        start_idx/end_idx: Indici nel vettore ``points`` di inizio/fine.
+        distance_m: Lunghezza orizzontale del segmento in metri.
+        elevation_gain_m: Dislivello positivo cumulato in metri.
+        avg_grade_percent: Pendenza media in percentuale.
+        category: Categoria ``hc/cat1/cat2/cat3/cat4`` o ``unclassified``.
+        start_point/end_point: Snapshot del primo/ultimo GPSPoint del segmento.
+    """
 
     start_idx: int
     end_idx: int
@@ -22,6 +31,8 @@ class ClimbSegment:
 
 
 # Categorization thresholds (based on gradient * distance)
+# Ogni categoria richiede il superamento di ALMENO UNA delle due condizioni
+# (distanza o pendenza media), in linea con la convenzione Tour de France/Flanders.
 CLIMB_CATEGORIES = {
     "hc": (100000, 20.0),  # HC: >10km o >20% media
     "cat1": (80000, 15.0),  # Cat1: >8km o >15%
@@ -39,7 +50,12 @@ def calculate_grade_percent(elev_gain_m: float, distance_m: float) -> float:
 
 
 def categorize_climb(grade: float, distance_m: float) -> str:
-    """Categorize climb based on difficulty."""
+    """Categorizza una salita secondo le soglie ``CLIMB_CATEGORIES``.
+
+    Una salita viene classificata nella prima categoria (in ordine
+    decrescente di difficolta') per cui distanza o pendenza superano la
+    soglia. Se nessuna corrisponde, ritorna ``"unclassified"``.
+    """
     for cat, (dist_thresh, grade_thresh) in CLIMB_CATEGORIES.items():
         if distance_m >= dist_thresh or grade >= grade_thresh:
             return cat

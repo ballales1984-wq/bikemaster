@@ -1,4 +1,19 @@
-"""Monitoring module with Prometheus metrics and health checks."""
+"""Monitoring module — Prometheus metrics, health checks and HTTP middleware.
+
+Responsabilita':
+- Definizione di contatori, istogrammi e gauge Prometheus per tracciare
+  volumi, latenze e stato dell'applicazione (rides, AI coach, import GPS,
+  sync, AetherMap ML, ecc.).
+- Health check aggregati (database, Redis, task queue, AI coach) consumabili
+  dall'endpoint ``/api/v1/health/comprehensive``.
+- Helper di registrazione (``record_*``) usati dai moduli di dominio per
+  incrementare le metriche senza dipendere direttamente da ``prometheus_client``.
+- Middleware ASGI ``MetricsMiddleware`` che misura ogni richiesta HTTP e
+  popola automaticamente i contatori.
+
+Tutte le funzioni pubbliche sono no-op se ``prometheus_client`` non e'
+installato, cosi' il modulo resta importabile in ambienti minimali.
+"""
 
 from __future__ import annotations
 
@@ -163,6 +178,14 @@ else:
 
 @dataclass
 class HealthStatus:
+    """Risultato aggregato di un health check.
+
+    Attributes:
+        healthy: True se tutti i check critici sono passati (database, task queue).
+        checks: Mappa ``nome -> 'status: messaggio'`` per ogni componente testato.
+        timestamp: Unix epoch (secondi) in cui e stato eseguito il check.
+    """
+
     healthy: bool
     checks: dict[str, str] = field(default_factory=dict)
     timestamp: float = field(default_factory=time.time)
@@ -176,6 +199,11 @@ class HealthStatus:
 
 
 async def check_database_health() -> tuple[str, str]:
+    """Verifica che SQLite risponda a una SELECT 1.
+
+    Returns:
+        Tupla ``(status, message)`` dove status e' ``healthy`` o ``unhealthy``.
+    """
     try:
         from .db.database import get_db_connection
 
@@ -190,6 +218,13 @@ async def check_database_health() -> tuple[str, str]:
 
 
 async def check_redis_health() -> tuple[str, str]:
+    """Verifica la connessione a Redis con un PING.
+
+    Returns:
+        ``healthy`` se il ping risponde, ``degraded`` se Redis non e'
+        configurato (cache disabilitata, fallback in-memory), ``unhealthy``
+        in caso di errore di connessione.
+    """
     try:
         from .redis_client import get_redis
 
@@ -204,6 +239,12 @@ async def check_redis_health() -> tuple[str, str]:
 
 
 async def check_task_queue_health() -> tuple[str, str]:
+    """Verifica lo stato della task queue interna.
+
+    Returns:
+        ``healthy`` con il numero di task attualmente tracciati, ``unhealthy``
+        se la coda non e' inizializzata o e' in stato di errore.
+    """
     try:
         from .task_queue import get_task_queue
 
@@ -215,6 +256,13 @@ async def check_task_queue_health() -> tuple[str, str]:
 
 
 async def check_ai_coach_health() -> tuple[str, str]:
+    """Verifica la configurazione dell'AI Coach (chiave Groq).
+
+    Returns:
+        ``healthy`` se la chiave Groq e' configurata correttamente (formato
+        ``gsk_``), ``degraded`` se manca o e' malformata, ``unhealthy`` per
+        errori imprevisti.
+    """
     try:
         from .settings import get_settings
 
@@ -243,6 +291,13 @@ async def asyncio_if_awaitable(value):
 
 
 async def comprehensive_health_check() -> HealthStatus:
+    """Esegue in parallelo tutti i check (DB, Redis, AI coach, task queue).
+
+    Returns:
+        ``HealthStatus`` con flag ``healthy`` globale (false se uno dei check
+        critici — database o task queue — fallisce). Redis e AI coach
+        degradati non invalidano l'overall status perche' sono non-critical.
+    """
     checks: dict[str, str] = {}
     overall_healthy = True
 
@@ -377,7 +432,12 @@ def start_metrics_server() -> None:
 
 
 class MetricsMiddleware:
-    """FastAPI middleware for automatic HTTP metrics collection."""
+    """Middleware ASGI che popola i contatori Prometheus per ogni richiesta HTTP.
+
+    Cattura metodo, path (template, non path completo per evitare cardinalita'
+    esplosiva sulle label Prometheus), status code e durata in secondi.
+    Skippato per le connessioni non-HTTP (es. WebSocket lifecycle events).
+    """
 
     def __init__(self, app):
         self.app = app

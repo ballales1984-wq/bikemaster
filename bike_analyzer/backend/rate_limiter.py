@@ -1,4 +1,12 @@
-"""Shared rate limiter for slowapi."""
+"""Rate limiting condiviso per slowapi + persistence SQLite.
+
+Fornisce due layer di protezione complementari:
+- ``Limiter`` slowapi globale con chiave ricavata dall'IP (onora
+  ``X-Forwarded-For`` solo da proxy trusted).
+- ``check_user_rate_limit`` per endpoint autenticati, che persiste gli
+  hit su SQLite (``rate_limits``) cosi' il limite sopravvive ai restart
+  del processo e al deploy rolling.
+"""
 
 import contextlib
 import json
@@ -19,6 +27,13 @@ logger = logging.getLogger(__name__)
 
 
 def get_limiter_key(request: Request) -> str:
+    """Estrae la chiave per il limiter slowapi dall'IP del client.
+
+    Se la richiesta arriva da un proxy trusted (lista in
+    ``trusted_proxies``) ed e' presente ``X-Forwarded-For``, usa il primo
+    hop come chiave per la mitigazione di IP spoofing dietro reverse proxy.
+    Altrimenti usa l'IP diretto del socket.
+    """
     forwarded = request.headers.get("X-Forwarded-For", "")
     if forwarded:
         first_hop = forwarded.split(",")[0].strip()
@@ -34,6 +49,13 @@ limiter = Limiter(key_func=get_limiter_key)
 
 @dataclass
 class RateLimitConfig:
+    """Limite per utente autenticato.
+
+    Attributes:
+        max_requests: Numero massimo di richieste consentite nella finestra.
+        window_seconds: Ampiezza della finestra scorrevole in secondi.
+    """
+
     max_requests: int = 100
     window_seconds: int = 60
 
@@ -87,6 +109,19 @@ def _load_rate_limits(key: str, window_seconds: int) -> list[float]:
 
 
 def check_user_rate_limit(user_id: int, endpoint: str, config: RateLimitConfig | None = None) -> None:
+    """Applica il limite per-utente all'endpoint richiesto.
+
+    Combina due store per evitare di perdere conteggi tra restart:
+    - In-memory ``_USER_RATE_LIMITS`` (veloce, process-local).
+    - SQLite ``rate_limits`` table (persistente, cross-deploy).
+
+    Al primo hit in un processo fresco, lo store locale viene inizializzato
+    dagli hit persistenti per evitare che il limite si resetti dopo un
+    rolling restart.
+
+    Raises:
+        HTTPException: 429 se il limite e' stato superato.
+    """
     cfg = config or RateLimitConfig()
     key = f"user:{user_id}:{endpoint}"
     now = time.time()
@@ -116,6 +151,15 @@ def check_user_rate_limit(user_id: int, endpoint: str, config: RateLimitConfig |
 
 
 def rate_limit_dependency(max_requests: int = 100, window_seconds: int = 60):
+    """Factory per una dipendenza FastAPI che applica il limite per-utente.
+
+    Uso tipico:
+        ``@router.post(..., dependencies=[Depends(rate_limit_dependency(50, 60))])``
+
+    L'utente deve essere stato autenticato in un passo precedente del
+    routing (la dipendenza riceve ``current_user`` gia' risolto).
+    """
+
     config = RateLimitConfig(max_requests=max_requests, window_seconds=window_seconds)
 
     def _check(current_user: dict) -> dict:

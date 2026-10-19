@@ -1,4 +1,11 @@
-"""GPS data processing and cleaning module."""
+"""Pulizia e processing di tracce GPS: pause, accelerazioni, segmenti.
+
+Tutte le funzioni lavorano su liste di ``GPSPoint`` e restituiscono strutture
+Pydantic (``Pause``, ``Segment``, ``RouteStatistics``) o tuple di supporto.
+Le soglie (velocita' pausa 1.5 km/h, durata minima pausa 3 min, accelerazione
+±2 km/h/s) sono esportate come costanti di modulo per consentire override
+nei test o in feature flag futuri.
+"""
 
 from __future__ import annotations
 
@@ -33,11 +40,19 @@ def validate_gps_point(point: GPSPoint) -> bool:
 
 
 def detect_pauses(points: list[GPSPoint]) -> list[Pause]:
-    """Detects pauses in the track: segments with continuous speed < 1.5 km/h.
+    """Rileva le soste in una traccia GPS.
 
-    A point is a "pause" if its speed drops below the threshold; when speed
-    rises again, if the accumulated duration >= 3 minutes a ``Pause`` object is
-    emitted (start/end/duration_s). Handles one open pause at a time.
+    Algoritmo:
+        - Un punto e' considerato "in pausa" quando ``speed < 1.5 km/h``.
+        - Mantiene al massimo una pausa aperta alla volta (variabile
+          ``pause_start``).
+        - Quando la velocita' risale, se la durata cumulata e' >= 3 min
+          emette un ``Pause`` (start/end/duration_s).
+        - Alla fine del loop chiude anche un'eventuale pausa tail se la
+          soglia di durata e' raggiunta.
+
+    Returns:
+        Lista di ``Pause`` ordinata cronologicamente.
     """
     pauses: list[Pause] = []
     if len(points) < 2:
