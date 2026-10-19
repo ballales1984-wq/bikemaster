@@ -29,6 +29,13 @@
         >
           {{ t("aethermap.clear") }}
         </button>
+        <button
+          class="btn btn-primary"
+          :disabled="!store.selectedIds.length"
+          @click="triggerFocusRoute"
+        >
+          🎯 {{ t("aethermap.focusRoute") }}
+        </button>
         <label class="checkbox-control aethermap-color">
           <input v-model="store.colorBySpeed" type="checkbox" />
           <span>{{ t("aethermap.colorBySpeed") }}</span>
@@ -40,6 +47,40 @@
             :disabled="terrainDisabled"
           />
           <span>{{ t("aethermap.terrainEnrichment") }}</span>
+        </label>
+        <label class="checkbox-control aethermap-color">
+          <input v-model="wireframe" type="checkbox" />
+          <span>{{ t("aethermap.wireframe") }}</span>
+        </label>
+        <label class="aethermap-control-group">
+          <span class="aethermap-label-text">{{ t("aethermap.cameraMode") }}:</span>
+          <select v-model="cameraMode" class="aethermap-select">
+            <option value="orbit">{{ t("aethermap.orbit") }}</option>
+            <option value="topDown">{{ t("aethermap.topDown") }}</option>
+            <option value="follow">{{ t("aethermap.follow") }}</option>
+          </select>
+        </label>
+        <label class="aethermap-control-group">
+          <span class="aethermap-label-text">☀️ {{ t("aethermap.sunPosition") }}: {{ sunHour }}h</span>
+          <input
+            v-model.number="sunHour"
+            type="range"
+            min="0"
+            max="24"
+            step="1"
+            class="aethermap-range"
+          />
+        </label>
+        <label class="aethermap-control-group">
+          <span class="aethermap-label-text">⛰️ {{ t("aethermap.verticalExaggeration") }}: {{ verticalExaggeration.toFixed(1) }}x</span>
+          <input
+            v-model.number="verticalExaggeration"
+            type="range"
+            min="1.0"
+            max="5.0"
+            step="0.5"
+            class="aethermap-range"
+          />
         </label>
         <label class="checkbox-control aethermap-color">
           <span>{{ t("aethermap.demSource") }}</span>
@@ -89,10 +130,15 @@
 
       <div class="aethermap-stage">
         <AetherMapViewer
+          ref="viewerRef"
           :ride-ids="store.selectedIds"
           :color-by-speed="store.colorBySpeed"
           :terrain-enriched="terrainEnriched"
           :dem-source="demSource"
+          :camera-mode="cameraMode"
+          :sun-hour="sunHour"
+          :vertical-exaggeration="verticalExaggeration"
+          :wireframe="wireframe"
         />
       </div>
     </div>
@@ -108,7 +154,13 @@ import type { Ride } from "../types/index";
 
 const { t } = useI18n();
 const store = useAetherMapStore();
+const viewerRef = ref<InstanceType<typeof AetherMapViewer> | null>(null);
 const terrainEnriched = ref(false);
+const cameraMode = ref<"orbit" | "topDown" | "follow">("orbit");
+const sunHour = ref(12);
+const verticalExaggeration = ref(1.0);
+const wireframe = ref(false);
+
 const terrainDisabled = computed(() => store.selectedIds.length !== 1);
 watch(
   () => store.selectedIds.length,
@@ -119,6 +171,10 @@ watch(
 const demSource = ref<"auto" | "procedural" | "copernicus" | "lidar" | "osm">(
   "auto",
 );
+
+function triggerFocusRoute(): void {
+  viewerRef.value?.focusOnRoute();
+}
 
 function formatDistance(ride: Ride): string {
   const km = ride.distance_km;
@@ -157,6 +213,33 @@ onMounted(() => {
 }
 .aethermap-color {
   min-height: 42px;
+}
+.aethermap-control-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+.aethermap-label-text {
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.aethermap-select {
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+.aethermap-range {
+  width: 90px;
+  accent-color: var(--primary, #00f3ff);
 }
 .aethermap-body {
   display: grid;

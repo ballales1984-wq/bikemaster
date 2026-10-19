@@ -510,7 +510,13 @@ async fn reset_local_data(state: TauriState<'_, AppState>) -> Result<String, Str
             updated_at TEXT NOT NULL,
             source TEXT NOT NULL DEFAULT 'manual',
             reliability_score REAL NOT NULL DEFAULT 1.0,
-            sync_status TEXT NOT NULL DEFAULT 'local'
+            sync_status TEXT NOT NULL DEFAULT 'local',
+            date TEXT,
+            gps_points TEXT,
+            distance_km REAL NOT NULL DEFAULT 0,
+            duration_minutes REAL NOT NULL DEFAULT 0,
+            activity_type TEXT,
+            tenant_id TEXT
         )",
         [],
     )
@@ -770,11 +776,15 @@ async fn list_rides(
 ) -> Result<axum::Json<serde_json::Value>, StatusCode> {
     let conn = state.conn.lock().await;
     let mut stmt = conn
-        .prepare("SELECT id, title, distance_m, elapsed_time_s, avg_speed_kmh, elevation_gain_m, sport_type, created_at, updated_at, source, reliability_score, sync_status FROM rides ORDER BY created_at DESC")
+        .prepare("SELECT id, title, distance_m, elapsed_time_s, avg_speed_kmh, elevation_gain_m, sport_type, created_at, updated_at, source, reliability_score, sync_status, date, gps_points, distance_km, duration_minutes, activity_type, tenant_id FROM rides ORDER BY created_at DESC")
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let rides: Vec<serde_json::Value> = stmt
         .query_map([], |row| {
+            let gps_points_str: Option<String> = row.get(13)?;
+            let gps_points_val: serde_json::Value = gps_points_str
+                .map(|s| serde_json::from_str(&s).unwrap_or(serde_json::Value::Array(vec![])))
+                .unwrap_or(serde_json::Value::Array(vec![]));
             Ok(serde_json::json!({
                 "id": row.get::<_, String>(0)?,
                 "title": row.get::<_, String>(1)?,
@@ -788,6 +798,12 @@ async fn list_rides(
                 "source": row.get::<_, String>(9)?,
                 "reliability_score": row.get::<_, f64>(10)?,
                 "sync_status": row.get::<_, String>(11)?,
+                "date": row.get::<_, Option<String>>(12)?,
+                "gps_points": gps_points_val,
+                "distance_km": row.get::<_, f64>(14)?,
+                "duration_minutes": row.get::<_, f64>(15)?,
+                "activity_type": row.get::<_, Option<String>>(16)?,
+                "tenant_id": row.get::<_, Option<String>>(17)?,
             }))
         })
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -808,14 +824,19 @@ async fn create_ride(
         .and_then(|v| v.as_str())
         .unwrap_or("Untitled")
         .to_string();
-    let distance_m = payload
-        .get("distance_m")
+
+    let distance_km = payload
+        .get("distance_km")
         .and_then(|v| v.as_f64())
         .unwrap_or(0.0);
-    let elapsed_time_s = payload
-        .get("elapsed_time_s")
+    let duration_minutes = payload
+        .get("duration_minutes")
         .and_then(|v| v.as_f64())
         .unwrap_or(0.0);
+
+    let distance_m = distance_km * 1000.0;
+    let elapsed_time_s = duration_minutes * 60.0;
+
     let avg_speed_kmh = payload.get("avg_speed_kmh").and_then(|v| v.as_f64());
     let elevation_gain_m = payload
         .get("elevation_gain_m")
@@ -824,14 +845,35 @@ async fn create_ride(
     let sport_type = payload
         .get("sport_type")
         .and_then(|v| v.as_str())
+        .or_else(|| payload.get("activity_type").and_then(|v| v.as_str()))
         .unwrap_or("cycling")
         .to_string();
+    let source = payload
+        .get("source")
+        .and_then(|v| v.as_str())
+        .unwrap_or("manual")
+        .to_string();
+    let date = payload
+        .get("date")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let gps_points = payload
+        .get("gps_points")
+        .map(|v| serde_json::to_string(v).unwrap_or_else(|_| "[]".to_string()))
+        .unwrap_or_else(|| "[]".to_string());
+    let tenant_id = payload
+        .get("tenant_id")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
 
     let conn = state.conn.lock().await;
     conn.execute(
-        "INSERT INTO rides (id, title, distance_m, elapsed_time_s, avg_speed_kmh, elevation_gain_m, sport_type, created_at, updated_at, source, reliability_score, sync_status)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'manual', 1.0, 'local')",
-        params![id, title, distance_m, elapsed_time_s, avg_speed_kmh, elevation_gain_m, sport_type, now, now],
+        "INSERT INTO rides (id, title, distance_m, elapsed_time_s, avg_speed_kmh, elevation_gain_m, sport_type, created_at, updated_at, source, reliability_score, sync_status, date, gps_points, distance_km, duration_minutes, activity_type, tenant_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 1.0, 'local', ?11, ?12, ?13, ?14, ?15, ?16)",
+        params![
+            id, title, distance_m, elapsed_time_s, avg_speed_kmh, elevation_gain_m, sport_type, now, now, source,
+            date, gps_points, distance_km, duration_minutes, sport_type, tenant_id
+        ],
     )
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -844,11 +886,15 @@ async fn get_ride(
 ) -> Result<axum::Json<serde_json::Value>, StatusCode> {
     let conn = state.conn.lock().await;
     let mut stmt = conn
-        .prepare("SELECT id, title, distance_m, elapsed_time_s, avg_speed_kmh, elevation_gain_m, sport_type, created_at, updated_at, source, reliability_score, sync_status FROM rides WHERE id = ?1")
+        .prepare("SELECT id, title, distance_m, elapsed_time_s, avg_speed_kmh, elevation_gain_m, sport_type, created_at, updated_at, source, reliability_score, sync_status, date, gps_points, distance_km, duration_minutes, activity_type, tenant_id FROM rides WHERE id = ?1")
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let result = stmt
         .query_row(params![id], |row| {
+            let gps_points_str: Option<String> = row.get(13)?;
+            let gps_points_val: serde_json::Value = gps_points_str
+                .map(|s| serde_json::from_str(&s).unwrap_or(serde_json::Value::Array(vec![])))
+                .unwrap_or(serde_json::Value::Array(vec![]));
             Ok(serde_json::json!({
                 "id": row.get::<_, String>(0)?,
                 "title": row.get::<_, String>(1)?,
@@ -862,6 +908,12 @@ async fn get_ride(
                 "source": row.get::<_, String>(9)?,
                 "reliability_score": row.get::<_, f64>(10)?,
                 "sync_status": row.get::<_, String>(11)?,
+                "date": row.get::<_, Option<String>>(12)?,
+                "gps_points": gps_points_val,
+                "distance_km": row.get::<_, f64>(14)?,
+                "duration_minutes": row.get::<_, f64>(15)?,
+                "activity_type": row.get::<_, Option<String>>(16)?,
+                "tenant_id": row.get::<_, Option<String>>(17)?,
             }))
         })
         .map_err(|_| StatusCode::NOT_FOUND)?;
@@ -946,10 +998,14 @@ async fn sync_export_handler(
         .ok();
 
     let mut rides_stmt = conn
-        .prepare("SELECT id, title, distance_m, elapsed_time_s, avg_speed_kmh, elevation_gain_m, sport_type, created_at, updated_at, source, reliability_score, sync_status, remote_id FROM rides ORDER BY created_at DESC")
+        .prepare("SELECT id, title, distance_m, elapsed_time_s, avg_speed_kmh, elevation_gain_m, sport_type, created_at, updated_at, source, reliability_score, sync_status, remote_id, date, gps_points, distance_km, duration_minutes, activity_type, tenant_id FROM rides ORDER BY created_at DESC")
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let rides: Vec<serde_json::Value> = rides_stmt
         .query_map([], |row| {
+            let gps_points_str: Option<String> = row.get(14)?;
+            let gps_points_val: serde_json::Value = gps_points_str
+                .map(|s| serde_json::from_str(&s).unwrap_or(serde_json::Value::Array(vec![])))
+                .unwrap_or(serde_json::Value::Array(vec![]));
             Ok(serde_json::json!({
                 "id": row.get::<_, String>(0)?,
                 "title": row.get::<_, String>(1)?,
@@ -964,6 +1020,12 @@ async fn sync_export_handler(
                 "reliability_score": row.get::<_, f64>(10)?,
                 "sync_status": row.get::<_, String>(11)?,
                 "remote_id": row.get::<_, Option<String>>(12)?,
+                "date": row.get::<_, Option<String>>(13)?,
+                "gps_points": gps_points_val,
+                "distance_km": row.get::<_, f64>(15)?,
+                "duration_minutes": row.get::<_, f64>(16)?,
+                "activity_type": row.get::<_, Option<String>>(17)?,
+                "tenant_id": row.get::<_, Option<String>>(18)?,
             }))
         })
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -1054,10 +1116,31 @@ async fn sync_import_handler(
             .get("reliability_score")
             .and_then(|v| v.as_f64())
             .unwrap_or(1.0);
+        let date = ride
+            .get("date")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        let gps_points = ride
+            .get("gps_points")
+            .map(|v| serde_json::to_string(v).unwrap_or_else(|_| "[]".to_string()))
+            .unwrap_or_else(|| "[]".to_string());
+        let distance_km = ride.get("distance_km").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let duration_minutes = ride
+            .get("duration_minutes")
+            .and_then(|v| v.as_f64())
+            .unwrap_or(0.0);
+        let activity_type = ride
+            .get("activity_type")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
+        let tenant_id = ride
+            .get("tenant_id")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string());
 
         conn.execute(
-            "INSERT INTO rides (id, title, distance_m, elapsed_time_s, avg_speed_kmh, elevation_gain_m, sport_type, created_at, updated_at, source, reliability_score, sync_status, remote_id)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'synced', ?1)
+            "INSERT INTO rides (id, title, distance_m, elapsed_time_s, avg_speed_kmh, elevation_gain_m, sport_type, created_at, updated_at, source, reliability_score, sync_status, remote_id, date, gps_points, distance_km, duration_minutes, activity_type, tenant_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 'synced', ?1, ?12, ?13, ?14, ?15, ?16, ?17)
              ON CONFLICT(id) DO UPDATE SET
                 title = ?2,
                 distance_m = ?3,
@@ -1070,7 +1153,13 @@ async fn sync_import_handler(
                 source = ?10,
                 reliability_score = ?11,
                 sync_status = 'synced',
-                remote_id = ?1",
+                remote_id = ?1,
+                date = ?12,
+                gps_points = ?13,
+                distance_km = ?14,
+                duration_minutes = ?15,
+                activity_type = ?16,
+                tenant_id = ?17",
             params![
                 id,
                 title,
@@ -1082,7 +1171,13 @@ async fn sync_import_handler(
                 created_at,
                 updated_at,
                 source,
-                reliability_score
+                reliability_score,
+                date,
+                gps_points,
+                distance_km,
+                duration_minutes,
+                activity_type,
+                tenant_id
             ],
         )
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -1116,7 +1211,13 @@ fn init_db(db_path: &std::path::Path) -> Result<Connection, rusqlite::Error> {
             updated_at TEXT NOT NULL,
             source TEXT NOT NULL DEFAULT 'manual',
             reliability_score REAL NOT NULL DEFAULT 1.0,
-            sync_status TEXT NOT NULL DEFAULT 'local'
+            sync_status TEXT NOT NULL DEFAULT 'local',
+            date TEXT,
+            gps_points TEXT,
+            distance_km REAL NOT NULL DEFAULT 0,
+            duration_minutes REAL NOT NULL DEFAULT 0,
+            activity_type TEXT,
+            tenant_id TEXT
          );
          CREATE TABLE IF NOT EXISTS athlete (
             id TEXT PRIMARY KEY CHECK (id = 'default'),
@@ -1224,6 +1325,30 @@ fn init_db(db_path: &std::path::Path) -> Result<Connection, rusqlite::Error> {
     if !has_remote_id {
         conn.execute("ALTER TABLE rides ADD COLUMN remote_id TEXT", [])
             .map_err(|e| e)?;
+    }
+
+    let existing_cols: Vec<String> = conn
+        .prepare("PRAGMA table_info(rides)")
+        .map_err(|e| e)?
+        .query_map([], |row| {
+            Ok(row.get::<_, String>(1)?)
+        })
+        .map_err(|e| e)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e)?;
+
+    let migrations = [
+        ("date", "ALTER TABLE rides ADD COLUMN date TEXT"),
+        ("gps_points", "ALTER TABLE rides ADD COLUMN gps_points TEXT"),
+        ("distance_km", "ALTER TABLE rides ADD COLUMN distance_km REAL NOT NULL DEFAULT 0"),
+        ("duration_minutes", "ALTER TABLE rides ADD COLUMN duration_minutes REAL NOT NULL DEFAULT 0"),
+        ("activity_type", "ALTER TABLE rides ADD COLUMN activity_type TEXT"),
+        ("tenant_id", "ALTER TABLE rides ADD COLUMN tenant_id TEXT"),
+    ];
+    for (col, sql) in migrations {
+        if !existing_cols.iter().any(|c| c == col) {
+            conn.execute(sql, []).map_err(|e| e)?;
+        }
     }
 
     Ok(conn)
