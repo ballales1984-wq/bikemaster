@@ -13,7 +13,15 @@ from .training_stress import estimate_tss, exponentially_weighted_moving_average
 
 @dataclass
 class TrainingLoadDay:
-    """Daily training load metrics."""
+    """Snapshot giornaliero del carico di allenamento.
+
+    Attributes:
+        date: Giorno in formato ``YYYY-MM-DD``.
+        tss: Training Stress Score cumulato del giorno (somma di tutte le ride).
+        atl: Acute Training Load (EWMA 7 giorni).
+        ctl: Chronic Training Load (EWMA 42 giorni).
+        tsb: Training Stress Balance = CTL - ATL; positivo = fresco, negativo = affaticato.
+    """
 
     date: str
     tss: float
@@ -108,10 +116,12 @@ def calculate_atl_ctl_tsb(rides: Ride | list[Ride], ftp: float = 250.0) -> list[
 
 
 def calculate_rss(rides: Ride | list[Ride], ftp: float = 250.0) -> float:
-    """Calcola il Recovery Stress Score (RSS) cumulato per le ride fornite.
+    """Calcola il Recovery Stress Score cumulato pesato per eta' delle ride.
 
-    Il RSS e' la somma dei TSS pesati per un fattore di recupero basato sui giorni
-    trascorsi dalla ride piu' recente.
+    Ogni ``TSS`` viene moltiplicato per ``1 / (1 + 0.1 * days_ago)`` dove
+    ``days_ago`` e' la distanza in giorni dalla ride piu' recente nella
+    finestra. Quindi ride piu' vecchie pesano meno, simulando il recupero
+    progressivo (modello lineare, non esponenziale).
     """
     rides = _normalize_rides(rides)
     if not rides:
@@ -135,9 +145,17 @@ def calculate_rss(rides: Ride | list[Ride], ftp: float = 250.0) -> float:
 
 
 def get_current_training_status(rides: Ride | list[Ride], ftp: float = 250.0) -> dict[str, Any]:
-    """Restituisce lo stato attuale di allenamento basato sulle ride recenti.
+    """Stato corrente di allenamento con raccomandazione euristica basata su TSB.
 
-    Include ATL/CTL/TSB correnti e una raccomandazione testuale.
+    Soglie:
+        - ``tsb > 10``  -> ``fresh``: pronto per sessione intensa.
+        - ``0 < tsb <= 10`` -> ``balanced``: buon equilibrio carico/recupero.
+        - ``-10 < tsb <= 0`` -> ``fatigued``: affaticamento lieve, giorno di recupero.
+        - ``tsb <= -10`` -> ``overreaching``: affaticamento elevato, riposo.
+
+    Returns:
+        Dizionario con chiavi ``ctl``, ``atl``, ``tsb``, ``status`` e ``recommendation``.
+        Se non ci sono ride, ritorna ``status='no_data'``.
     """
     rides = _normalize_rides(rides)
     if not rides:

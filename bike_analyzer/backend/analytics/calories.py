@@ -1,4 +1,9 @@
-"""Calorie estimation using MET and physics models."""
+"""Stima calorie con modello MET (compendium) e modello fisico (potenza/efficienza).
+
+Delega il calcolo vero e proprio a ``core.calculators.calories`` mantenendo
+un'interfaccia stabile per i consumer (``Ride.calories`` garantito non-zero
+quando i dati lo permettono).
+"""
 
 from __future__ import annotations
 
@@ -30,11 +35,17 @@ def calories_per_km(ride: Ride) -> float:
 
 
 def ensure_calories(ride: Ride) -> float:
-    """Return ``ride.calories``, estimating it when not already set.
+    """Ritorna ``ride.calories`` ricalcolandole se assenti o 0.
 
-    Mirrors the logic used when creating a ride: if no calories are stored but the
-    ride has the data needed (speed/distance/duration), compute average speed when
-    missing and fall back to a physics-based estimate so the value is never silently 0.
+    Strategia di fallback per evitare calorie=0 silenti:
+    1. Se ``ride.calories`` e' valorizzato, lo ritorna.
+    2. Se manca ``avg_speed_kmh`` ma ci sono distanza+durata, la ricava.
+    3. Se anche cosi' non c'e' velocita', ritorna 0 (input insufficiente).
+    4. Altrimenti applica ``estimate_calories(method='physics')`` su una copia
+       della ride con peso default 70kg se mancante.
+
+    Returns:
+        Valore calorico stimato in kcal, oppure 0.0 se i dati sono insufficienti.
     """
     if ride.calories:
         return float(ride.calories)

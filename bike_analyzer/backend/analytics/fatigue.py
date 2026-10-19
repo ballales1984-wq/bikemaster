@@ -1,4 +1,10 @@
-"""Fatigue model for cycling performance intelligence."""
+"""Modello di fatica post-uscita per il coach digitale.
+
+Calcola uno score 0-10 basato su una combinazione pesata di durata,
+intensita' cardio (HR%), velocita', dislivello e peso del ciclista.
+Espone anche la stima delle ore di recupero e un suggerimento testuale
+per la schedulazione del giorno successivo.
+"""
 
 from __future__ import annotations
 
@@ -7,13 +13,29 @@ from .error_propagation import ErrorValue
 
 
 def calculate_fatigue_score(ride: Ride, rider_age: int = 35) -> float:
-    """Calculate fatigue score based on ride intensity and duration."""
+    """Wrapper senza propagazione d'errore: ritorna solo il valore.
+
+    Per analisi con confidenza, usare :func:`calculate_fatigue_score_with_error`.
+    """
     result = calculate_fatigue_score_with_error(ride, rider_age)
     return round(result.value, 1)
 
 
 def calculate_fatigue_score_with_error(ride: Ride, rider_age: int = 35) -> ErrorValue:
-    """Calculate fatigue score with statistical and resolution error."""
+    """Calcola fatigue score 0-10 con propagazione d'errore.
+
+    Fattori e pesi:
+        - Duration (30%): normalizzato a 2h, clamp a 3x.
+        - Intensity (30%): da %HRmax = HR/(220-age) con curva a 3 spezzoni
+          (fino a 50% neutro, 50-85% lineare, >85% ripida).
+        - Speed (20%): normalizzato a 25 km/h, clamp a 2x.
+        - Elevation (10%): gradient ratio gain/km normalizzato a 20.
+        - Weight (10%): kg/70.
+
+    Score finale clamp a 10. ``coverage`` = 1 - missing_fields/4, dove i
+    field opzionali sono duration/HR/speed/elevation. Piu' field mancano,
+    piu' l'errore statistico cresce (fino a 2x).
+    """
     duration_h = ride.duration_hours or 0
     hr_avg = ride.heart_rate_avg
     DURATION_FACTOR = min(duration_h / 2.0, 3.0)
@@ -63,7 +85,11 @@ def calculate_fatigue_score_with_error(ride: Ride, rider_age: int = 35) -> Error
 
 
 def estimate_recovery_hours(fatigue_score: float) -> float:
-    """Estimate recovery time in hours based on fatigue score."""
+    """Stima le ore di recupero necessarie in base al fatigue score.
+
+    Soglie a gradino (modello semplificato, non esponenziale):
+        <= 3 -> 8h, <= 5 -> 16h, <= 7 -> 24h, altrimenti 48h.
+    """
     if fatigue_score <= 3.0:
         return 8.0
     if fatigue_score <= 5.0:
@@ -74,7 +100,11 @@ def estimate_recovery_hours(fatigue_score: float) -> float:
 
 
 def get_recovery_recommendation(fatigue_score: float) -> str:
-    """Get human-readable recovery recommendation."""
+    """Restituisce una raccomandazione di recupero human-readable per il coach.
+
+    Soglie graduate a partire da fatigue <= 2 (fatica minima) fino a >8
+    (fatica estrema con piu' giorni di riposo consigliati).
+    """
     if fatigue_score <= 2.0:
         return "Minimal fatigue"
     if fatigue_score <= 4.0:
