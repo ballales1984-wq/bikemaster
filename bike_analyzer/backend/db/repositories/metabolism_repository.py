@@ -442,7 +442,7 @@ def get_metabolic_reference_value(
     tenant_id: int = 0,
 ) -> dict | None:
     """Return the imported reference row for the bracket closest to age/weight."""
-    from ...core.calculators.metabolism import age_bracket, weight_bracket
+    from bike_analyzer.core.calculators.metabolism import age_bracket, weight_bracket
 
     a_lo, a_hi = age_bracket(age)
     w_lo, w_hi = weight_bracket(weight_kg)
