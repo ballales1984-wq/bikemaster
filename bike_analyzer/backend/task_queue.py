@@ -3,6 +3,10 @@
 Provides a simple async task queue using asyncio with optional Redis integration.
 Used for: batch GPX/FIT import, map generation, AI Coach batch processing,
           weather cache warming, training stress recalculation.
+
+Tasks are executed by a fixed pool of worker coroutines. Each task kind has
+a dedicated handler and a configurable timeout. Completed tasks are purged
+after a TTL to prevent unbounded memory growth.
 """
 
 from __future__ import annotations
@@ -17,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 def _ensure_calories(ride_data: dict) -> None:
+    """Ensure a ride dict has calories; backfill via physics estimator if missing."""
     if ride_data.get("calories"):
         return
     try:
@@ -32,6 +37,18 @@ def _ensure_calories(ride_data: dict) -> None:
 
 @dataclass
 class Task:
+    """Background task descriptor.
+
+    Attributes:
+        id: Unique task identifier (UUID).
+        kind: Task type (e.g. ``"batch_import"``, ``"strava_sync"``).
+        payload: Arbitrary task parameters.
+        created_at: Unix timestamp of creation.
+        status: One of: ``"pending"``, ``"running"``, ``"completed"``, ``"failed"``.
+        result: Task result (set on completion).
+        error: Error message (set on failure).
+    """
+
     id: str
     kind: str
     payload: dict = field(default_factory=dict)
@@ -41,6 +58,7 @@ class Task:
     error: str | None = None
 
     def to_dict(self) -> dict:
+        """Serialize the task to a JSON-compatible dict."""
         return {
             "id": self.id,
             "kind": self.kind,
@@ -53,7 +71,19 @@ class Task:
 
 
 class BackgroundTaskQueue:
+    """Async task queue with a fixed worker pool.
+
+    Workers consume tasks from an internal asyncio.Queue, execute the
+    appropriate handler for the task kind, and record results. Completed
+    tasks are automatically purged after ``_TASK_TTL`` seconds.
+    """
+
     def __init__(self, max_workers: int = 2):
+        """Initialize the queue with a fixed number of worker coroutines.
+
+        Args:
+            max_workers: Maximum concurrent task workers.
+        """
         self._queue: asyncio.Queue = asyncio.Queue()
         self._tasks: dict[str, Task] = {}
         self._workers: list[asyncio.Task] = []
@@ -62,6 +92,7 @@ class BackgroundTaskQueue:
         self._TASK_TTL = 300.0
         self._completed_at: dict[str, float] = {}
         self._lock = asyncio.Lock()
+        # Per-task-kind timeouts (seconds). Falls back to 300s for unknown kinds.
         self._TASK_TIMEOUTS = {
             "batch_import": 600.0,
             "generate_map": 120.0,
@@ -72,7 +103,8 @@ class BackgroundTaskQueue:
             "wahoo_sync": 300.0,
         }
 
-    async def start(self):
+    async def start(self) -> None:
+        """Start the worker pool. No-op if already running."""
         if self._running:
             return
         self._running = True
@@ -81,14 +113,20 @@ class BackgroundTaskQueue:
             self._workers.append(t)
         logger.info("Background task queue started with %d workers", self._max_workers)
 
-    async def stop(self):
+    async def stop(self) -> None:
+        """Stop the worker pool and cancel all pending tasks."""
         self._running = False
         for w in self._workers:
             w.cancel()
         self._workers.clear()
         logger.info("Background task queue stopped")
 
-    async def _worker(self, name: str):
+    async def _worker(self, name: str) -> None:
+        """Worker coroutine: consumes tasks from the queue until stopped.
+
+        Each iteration blocks on ``queue.get()`` with a 1s timeout so the
+        worker can check ``self._running`` periodically.
+        """
         while self._running:
             try:
                 task = await asyncio.wait_for(self._queue.get(), timeout=1.0)
@@ -103,7 +141,13 @@ class BackgroundTaskQueue:
             except Exception as exc:
                 logger.error("[%s] unexpected error: %s", name, exc)
 
-    async def _execute(self, task: Task, worker_name: str):
+    async def _execute(self, task: Task, worker_name: str) -> None:
+        """Dispatch a task to its kind-specific handler with timeout enforcement.
+
+        Args:
+            task: The task to execute.
+            worker_name: Worker identifier for logging.
+        """
         try:
             task_id = task.id
             kind = task.kind
@@ -153,7 +197,8 @@ class BackgroundTaskQueue:
                 self._completed_at[task.id] = time.time()
             logger.error("[%s] task %s failed: %s", worker_name, task.id, exc)
 
-    def _purge_expired(self):
+    def _purge_expired(self) -> None:
+        """Remove completed tasks older than ``_TASK_TTL`` from memory."""
         now = time.time()
         expired = [
             tid for tid, ts in self._completed_at.items()
@@ -164,6 +209,15 @@ class BackgroundTaskQueue:
             self._completed_at.pop(tid, None)
 
     async def enqueue(self, kind: str, payload: dict | None = None) -> Task:
+        """Add a new task to the queue.
+
+        Args:
+            kind: Task type identifier.
+            payload: Task-specific parameters.
+
+        Returns:
+            The created Task object.
+        """
         import uuid
 
         async with self._lock:
@@ -175,18 +229,29 @@ class BackgroundTaskQueue:
         return task
 
     def get_task(self, task_id: str) -> Task | None:
+        """Retrieve a task by id, purging expired entries first."""
         self._purge_expired()
         return self._tasks.get(task_id)
 
     def get_pending(self) -> list[Task]:
+        """Return all pending (not yet started) tasks."""
         self._purge_expired()
         return [t for t in self._tasks.values() if t.status == "pending"]
 
     def get_running(self) -> list[Task]:
+        """Return all currently running tasks."""
         self._purge_expired()
         return [t for t in self._tasks.values() if t.status == "running"]
 
     async def _handle_batch_import(self, payload: dict) -> dict:
+        """Import multiple GPX/FIT files in batch.
+
+        Args:
+            payload: Dict with ``files`` list and ``athlete_id``/``tenant_id``.
+
+        Returns:
+            Dict with ``imported`` and ``failed`` lists.
+        """
         from bike_analyzer.backend.services.import_service import ImportService
 
         results = {"imported": [], "failed": []}
@@ -217,6 +282,14 @@ class BackgroundTaskQueue:
         return results
 
     async def _handle_generate_map(self, payload: dict) -> dict:
+        """Generate an HTML map for a ride.
+
+        Args:
+            payload: Dict with ``points`` (GPS list) and ``ride_id``.
+
+        Returns:
+            Dict with ``map_url`` or ``error``.
+        """
         from pathlib import Path
 
         from bike_analyzer.backend.maps.map_renderer import create_route_map
@@ -237,6 +310,14 @@ class BackgroundTaskQueue:
             return {"error": str(exc)}
 
     async def _handle_recalculate_stress(self, payload: dict) -> dict:
+        """Recalculate training stress (TSS/ATL/CTL/TSB) for an athlete.
+
+        Args:
+            payload: Dict with ``athlete_id`` and optional ``ftp``.
+
+        Returns:
+            Dict with ``updated`` count or ``error``.
+        """
         from bike_analyzer.backend.analytics.repositories.ride_repository import RideRepository
         from bike_analyzer.backend.analytics.training_load import (
             recalculate_training_stress_for_athlete,
@@ -251,6 +332,14 @@ class BackgroundTaskQueue:
         return {"updated": len(rides)}
 
     async def _handle_warm_weather(self, payload: dict) -> dict:
+        """Warm the weather cache for a list of dates.
+
+        Args:
+            payload: Dict with ``lat``, ``lon``, and ``dates`` list.
+
+        Returns:
+            Dict with ``cached_days`` count.
+        """
         from bike_analyzer.backend.weather.weather_service import get_forecast_for_date
 
         lat = payload.get("lat")
@@ -271,6 +360,16 @@ class BackgroundTaskQueue:
         return {"cached_days": cached}
 
     async def _handle_strava_sync(self, payload: dict) -> dict:
+        """Sync new activities from Strava for an athlete.
+
+        Handles rate-limited stream fetching by falling back to basic activity data.
+
+        Args:
+            payload: Dict with ``athlete_id`` and optional ``tenant_id``.
+
+        Returns:
+            Dict with ``imported`` count, ``total_fetched``, or ``error``.
+        """
         import time
 
         from bike_analyzer.backend.analytics.repositories.ride_repository import RideRepository
@@ -318,6 +417,14 @@ class BackgroundTaskQueue:
         return {"imported": len(imported), "total_fetched": len(activities)}
 
     async def _handle_garmin_sync(self, payload: dict) -> dict:
+        """Sync new activities from Garmin for an athlete.
+
+        Args:
+            payload: Dict with ``athlete_id`` and optional ``tenant_id``.
+
+        Returns:
+            Dict with ``imported`` count and ``total_fetched``.
+        """
         from bike_analyzer.backend.analytics.repositories.ride_repository import RideRepository
         from bike_analyzer.backend.ingestion.garmin_client import (
             fetch_activities,
@@ -348,6 +455,14 @@ class BackgroundTaskQueue:
         return {"imported": len(imported), "total_fetched": len(activities)}
 
     async def _handle_wahoo_sync(self, payload: dict) -> dict:
+        """Sync new workouts from Wahoo for an athlete.
+
+        Args:
+            payload: Dict with ``athlete_id`` and optional ``tenant_id``.
+
+        Returns:
+            Dict with ``imported`` count and ``total_fetched``.
+        """
         from bike_analyzer.backend.analytics.repositories.ride_repository import RideRepository
         from bike_analyzer.backend.ingestion.wahoo_client import (
             fetch_workouts,
@@ -382,6 +497,7 @@ _task_queue: BackgroundTaskQueue | None = None
 
 
 def get_task_queue() -> BackgroundTaskQueue:
+    """Return the singleton task queue instance, creating it if needed."""
     global _task_queue
     if _task_queue is None:
         _task_queue = BackgroundTaskQueue(max_workers=2)
