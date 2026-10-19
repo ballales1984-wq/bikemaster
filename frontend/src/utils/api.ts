@@ -158,6 +158,7 @@ async function request<T>(options: RequestOptions): Promise<T> {
     typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams;
   const userKeysHeader = getUserKeysHeaderValue();
   const init: RequestInit = {
+    credentials: "include",
     ...rest,
     method,
     headers: {

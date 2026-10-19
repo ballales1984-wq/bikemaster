@@ -182,7 +182,7 @@ export function processOAuthToken(): boolean {
     ui.setOauthLoading(false);
     clearUrlToken();
     if (import.meta.env.DEV)
-      console.log("[OAuth] token consumed from URL, profile:", email);
+      console.log("[OAuth] token consumed from URL");
     return true;
   }
 

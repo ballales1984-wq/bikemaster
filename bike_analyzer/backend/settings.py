@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     # Default to localhost only. In production, set CORS_ORIGINS explicitly
     # to the exact origins that should be allowed (no wildcards).
     # For mobile access, add your PC's local network IP (e.g. http://192.168.1.100:8001).
-    cors_origins: str = "http://localhost:8001,http://localhost:8080,http://127.0.0.1:8001,http://127.0.0.1:8080,capacitor://localhost,http://localhost,null"
+    cors_origins: str = "http://localhost:8001,http://localhost:8080,http://127.0.0.1:8001,http://127.0.0.1:8080,capacitor://localhost,http://localhost"
 
     @property
     def cors_origins_list(self) -> list[str]:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
@@ -11,11 +11,13 @@ from ...security import (
     create_access_token,
     create_refresh_token,
     decode_token_with_fallback,
+    delete_auth_cookies,
     get_current_user,
     hash_password,
     is_token_revoked,
     revoke_refresh_token,
     save_refresh_token,
+    set_auth_cookies,
     verify_password,
 )
 from ...settings import get_settings
@@ -44,7 +46,7 @@ class RegisterRequest(BaseModel):
 
 
 @router.post("/auth/switch-athlete/{athlete_id}")
-async def switch_athlete(athlete_id: int, current_user: dict = Depends(get_current_user)):
+async def switch_athlete(athlete_id: int, response: Response, current_user: dict = Depends(get_current_user)):
     """Switch the active athlete profile and return a new JWT with athlete_id claim."""
     from ...analytics.repositories.athlete_repository import AthleteRepository
 
@@ -69,6 +71,7 @@ async def switch_athlete(athlete_id: int, current_user: dict = Depends(get_curre
         is_client=current_user.get("is_client", False),
     )
     save_refresh_token(user_id, refresh_token)
+    set_auth_cookies(response, access_token, refresh_token)
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -126,7 +129,7 @@ async def delete_my_oauth_credentials(provider: str, current_user: dict = Depend
 
 
 @router.post("/auth/login")
-async def local_login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
+async def local_login(request: Request, response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
     """Local login using the SQLite users table (offline/local-first mode)."""
     user = get_user_by_username(form_data.username)
     if not user or not verify_password(form_data.password, user.get("password_hash") or ""):
@@ -145,6 +148,7 @@ async def local_login(request: Request, form_data: OAuth2PasswordRequestForm = D
         is_client=bool(user.get("is_client")),
     )
     await save_refresh_token(int(user["id"]), refresh_token)
+    set_auth_cookies(response, access_token, refresh_token)
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -183,16 +187,17 @@ async def local_register(request: Request, data: RegisterRequest):
 
 
 @router.post("/auth/logout")
-async def local_logout(request: Request, current_user: dict = Depends(get_current_user)):
+async def local_logout(request: Request, response: Response, current_user: dict = Depends(get_current_user)):
     """Local logout: revoke refresh token."""
     await revoke_refresh_token(int(current_user["id"]))
+    delete_auth_cookies(response)
     return {"msg": "Logged out successfully"}
 
 
 @router.post("/auth/refresh")
-async def local_refresh(request: Request, payload: dict = Body(...)):
+async def local_refresh(request: Request, response: Response, payload: dict = Body(...)):
     """Refresh access token using a valid refresh token (SQLite/local mode)."""
-    refresh_token = payload.get("refresh_token")
+    refresh_token = payload.get("refresh_token") or request.cookies.get("bikemaster_refresh")
     jwt_payload = await decode_token_with_fallback(refresh_token)
     if not jwt_payload:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
@@ -208,10 +213,12 @@ async def local_refresh(request: Request, payload: dict = Body(...)):
     is_client = bool(jwt_payload.get("is_client", False))
     tenant_id = jwt_payload.get("tenant_id")
     resolved_tenant = int(tenant_id) if tenant_id is not None else int(user_id)
+    new_access_token = create_access_token(
+        subject=str(user_id), is_admin=is_admin, tenant_id=resolved_tenant, is_client=is_client
+    )
+    set_auth_cookies(response, new_access_token)
     return {
-        "access_token": create_access_token(
-            subject=str(user_id), is_admin=is_admin, tenant_id=resolved_tenant, is_client=is_client
-        ),
+        "access_token": new_access_token,
         "token_type": "bearer",
     }
 

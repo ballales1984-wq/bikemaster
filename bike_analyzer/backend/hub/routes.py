@@ -21,7 +21,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode, urlparse
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
@@ -53,6 +53,7 @@ from bike_analyzer.backend.security import (
     create_access_token,
     create_refresh_token,
     decode_token_with_fallback,
+    delete_auth_cookies,
     get_admin_user,
     get_current_user,
     hash_password,
@@ -60,6 +61,7 @@ from bike_analyzer.backend.security import (
     revoke_refresh_token,
     revoke_token,
     save_refresh_token,
+    set_auth_cookies,
     verify_password,
 )
 from bike_analyzer.backend.settings import get_settings
@@ -244,7 +246,7 @@ hub_auth_router = APIRouter(tags=["auth"])
 
 @hub_auth_router.post("/auth/login")
 @limiter.limit("5/minute")
-async def hub_login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
+async def hub_login(request: Request, response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
     """Hub login — always uses PostgreSQL."""
     from sqlalchemy import select as sa_select
 
@@ -268,6 +270,7 @@ async def hub_login(request: Request, form_data: OAuth2PasswordRequestForm = Dep
             user.id, is_admin=user.is_admin, tenant_id=user.id, is_client=user.is_client
         )
         await save_refresh_token(user.id, refresh_token)
+        set_auth_cookies(response, access_token, refresh_token)
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
@@ -279,7 +282,7 @@ async def hub_login(request: Request, form_data: OAuth2PasswordRequestForm = Dep
 
 
 @hub_auth_router.post("/auth/logout")
-async def hub_logout(request: Request, current_user: dict = Depends(get_current_user)):
+async def hub_logout(request: Request, response: Response, current_user: dict = Depends(get_current_user)):
     """Logout Hub: revoca il token di accesso e quello di refresh dell'utente."""
     auth_header = request.headers.get("authorization", "")
     token = auth_header.removeprefix("Bearer ").strip()
@@ -296,14 +299,15 @@ async def hub_logout(request: Request, current_user: dict = Depends(get_current_
                 await revoke_refresh_token(int(athlete_id))
     except Exception as exc:
         logger.warning("Hub logout: failed to revoke token: %s", exc)
+    delete_auth_cookies(response)
     return {"msg": "Logged out successfully"}
 
 
 @hub_auth_router.post("/auth/refresh")
 @limiter.limit("10/minute")
-async def hub_refresh_token(request: Request, payload: dict = Body(...)):
+async def hub_refresh_token(request: Request, response: Response, payload: dict = Body(...)):
     """Rinnova l'access token a partire da un refresh token ancora valido."""
-    refresh_token = payload.get("refresh_token")
+    refresh_token = payload.get("refresh_token") or request.cookies.get("bikemaster_refresh")
     jwt_payload = await decode_token_with_fallback(refresh_token)
     if not jwt_payload:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
@@ -319,10 +323,12 @@ async def hub_refresh_token(request: Request, payload: dict = Body(...)):
     is_client = bool(jwt_payload.get("is_client", False))
     tenant_id = jwt_payload.get("tenant_id")
     resolved_tenant = int(tenant_id) if tenant_id is not None else int(user_id)
+    new_token = create_access_token(
+        subject=str(user_id), is_admin=is_admin, tenant_id=resolved_tenant, is_client=is_client
+    )
+    set_auth_cookies(response, new_token)
     return {
-        "access_token": create_access_token(
-            subject=str(user_id), is_admin=is_admin, tenant_id=resolved_tenant, is_client=is_client
-        ),
+        "access_token": new_token,
         "token_type": "bearer",
     }
 
@@ -648,13 +654,16 @@ async def hub_google_oauth_callback_get(
         redirect_target = frontend_origin or redirect_uri
         redirect_url = _build_oauth_success_url(redirect_target, jwt_token, email or "", existing.id)
         await _cache_set(f"oauth:code:{code}", {"redirect_url": redirect_url}, ttl=300)
-        return RedirectResponse(url=redirect_url)
+        redirect_resp = RedirectResponse(url=redirect_url)
+        set_auth_cookies(redirect_resp, jwt_token)
+        return redirect_resp
 
 
 @hub_auth_router.post("/auth/google/code-exchange")
 @limiter.limit("10/minute")
 async def hub_google_code_exchange(
     request: Request,
+    response: Response,
     payload: dict = Body(...),
 ):
     """Scambia il code OAuth di Google per un access token e una sessione locale."""
@@ -711,6 +720,7 @@ async def hub_google_code_exchange(
 
         jwt_token = create_google_session(user_info, athlete_id=existing.id)["access_token"]
 
+    set_auth_cookies(response, jwt_token)
     return {
         "access_token": jwt_token,
         "token_type": "bearer",
